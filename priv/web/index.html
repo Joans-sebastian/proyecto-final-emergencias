@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestión de Emergencias</title>
+<style>
+  :root {
+    --fondo: #f3f5f8; --panel: #ffffff; --texto: #1e293b; --suave: #64748b; --borde: #dde3ea;
+    --acento: #b91c1c; --acento-oscuro: #991b1b; --acento-claro: #fef2f2;
+    --ok: #166534; --ok-claro: #f0fdf4; --error: #b91c1c; --error-claro: #fef2f2;
+    --codigo: #0f172a; --codigo-texto: #e2e8f0; --radio: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: "Segoe UI", system-ui, sans-serif; background: var(--fondo); color: var(--texto); font-size: 14px; }
+  button, input, select { font: inherit; }
+  button { cursor: pointer; border-radius: 7px; border: 1px solid var(--borde); background: var(--panel); color: var(--texto); padding: 8px 14px; }
+  button:hover { border-color: var(--acento); }
+  button.principal { background: var(--acento); border-color: var(--acento); color: #fff; font-weight: 600; }
+  button.principal:hover { background: var(--acento-oscuro); }
+  button:disabled { opacity: .6; cursor: wait; }
+  input, select { width: 100%; padding: 8px 10px; border: 1px solid var(--borde); border-radius: 7px; background: #fff; }
+  input:focus, select:focus { outline: 2px solid #fecaca; border-color: var(--acento); }
+  label { display: block; font-size: 12.5px; color: var(--suave); margin: 10px 0 4px; }
+  .ayuda { font-size: 12px; color: var(--suave); margin-top: 3px; }
+  .oculto { display: none !important; }
+
+  /* Encabezado */
+  header { background: var(--acento); color: #fff; height: 56px; padding: 0 20px; display: flex; align-items: center; gap: 14px; }
+  header .marca { font-weight: 700; font-size: 16px; flex: 1; }
+  header .usuario { font-size: 13px; text-align: right; line-height: 1.25; }
+  header .usuario small { opacity: .85; }
+  header button { background: transparent; color: #fff; border-color: rgba(255,255,255,.55); padding: 6px 12px; }
+  header button:hover { background: rgba(255,255,255,.12); border-color: #fff; }
+
+  /* Inicio de sesión */
+  #vista-login { display: flex; justify-content: center; padding: 40px 16px; }
+  .tarjeta { background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio); }
+  .login { width: 100%; max-width: 440px; padding: 26px; }
+  .login h1 { font-size: 21px; margin: 0 0 4px; }
+  .login p { margin: 0 0 8px; color: var(--suave); }
+  .login .nuevo { margin-top: 14px; padding-top: 6px; border-top: 1px dashed var(--borde); }
+  .login .nuevo h2 { font-size: 13px; margin: 8px 0 0; color: var(--suave); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .login button { width: 100%; margin-top: 18px; padding: 10px; }
+
+  .aviso { border-radius: 7px; padding: 10px 12px; margin-top: 14px; font-size: 13.5px; white-space: pre-wrap; }
+  .aviso.error { background: var(--error-claro); color: var(--error); border: 1px solid #fecaca; }
+  .aviso.ok { background: var(--ok-claro); color: var(--ok); border: 1px solid #bbf7d0; }
+
+  /* Panel principal */
+  #vista-app { display: grid; grid-template-columns: 230px 1fr; height: calc(100% - 56px); }
+  nav { background: var(--panel); border-right: 1px solid var(--borde); padding: 14px 10px; overflow-y: auto; }
+  nav button { display: block; width: 100%; text-align: left; border: none; background: none; padding: 9px 12px; margin: 2px 0; border-radius: 7px; color: var(--texto); }
+  nav button:hover { background: var(--fondo); }
+  nav button.activo { background: var(--acento-claro); color: var(--acento); font-weight: 600; }
+  nav .separador { height: 1px; background: var(--borde); margin: 10px 4px; }
+  main { overflow-y: auto; padding: 22px 26px 40px; }
+  .titulo-seccion { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+  .titulo-seccion h1 { font-size: 20px; margin: 0; }
+  .titulo-seccion span { color: var(--suave); }
+
+  .resultado { margin-bottom: 18px; border-radius: var(--radio); overflow: hidden; border: 1px solid var(--borde); background: var(--panel); }
+  .resultado .cabeza { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; font-size: 13px; background: var(--ok-claro); color: var(--ok); font-family: Consolas, monospace; }
+  .resultado.error .cabeza { background: var(--error-claro); color: var(--error); }
+  .resultado .cabeza button { padding: 2px 8px; font-size: 12px; }
+  .resultado pre { margin: 0; padding: 12px 14px; background: var(--codigo); color: var(--codigo-texto); font: 12.5px/1.5 Consolas, monospace; white-space: pre-wrap; word-break: break-word; max-height: 420px; overflow: auto; }
+
+  .acciones { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+  .accion { padding: 16px; display: flex; flex-direction: column; }
+  .accion h3 { margin: 0 0 4px; font-size: 15px; }
+  .accion .comando { font-family: Consolas, monospace; font-size: 11.5px; color: var(--suave); }
+  .accion form { display: flex; flex-direction: column; flex: 1; }
+  .accion .opcionales { margin-top: 8px; font-size: 12px; color: var(--suave); text-transform: uppercase; letter-spacing: .04em; }
+  .accion button { margin-top: 14px; align-self: flex-start; }
+
+  .consola form { display: flex; gap: 8px; margin-bottom: 14px; }
+  .consola input { font-family: Consolas, monospace; }
+  .historial .resultado { margin-bottom: 10px; }
+
+  @media (max-width: 760px) {
+    #vista-app { grid-template-columns: 1fr; height: auto; }
+    nav { display: flex; flex-wrap: wrap; gap: 4px; border-right: none; border-bottom: 1px solid var(--borde); }
+    nav button { width: auto; }
+    nav .separador { display: none; }
+    main { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="marca">Sistema de Coordinación y Gestión de Emergencias</div>
+  <div class="usuario oculto" id="quien"></div>
+  <button id="boton-salir" class="oculto">Cerrar sesión</button>
+</header>
+
+<!-- ======================= Inicio de sesión ======================= -->
+<section id="vista-login">
+  <div class="tarjeta login">
+    <h1>Iniciar sesión</h1>
+    <p>Si el usuario no existe, se registra automáticamente.</p>
+    <div id="aviso-archivo" class="aviso error oculto">Esta página debe abrirse desde el servidor, no con doble clic.
+Ejecute en la terminal:  elixir web.exs
+y abra  http://localhost:4000</div>
+    <form id="form-login" novalidate>
+      <label for="usuario">Usuario</label>
+      <input id="usuario" autocomplete="username" placeholder="joan.vargas">
+      <div class="ayuda">Sin espacios: letras, números, punto, guion o guion bajo.</div>
+      <label for="contrasena">Contraseña</label>
+      <input id="contrasena" type="password" autocomplete="current-password">
+      <div class="ayuda">Mínimo 4 caracteres.</div>
+      <div class="nuevo">
+        <h2>Solo si es un usuario nuevo</h2>
+        <label for="nombre">Nombre completo</label>
+        <input id="nombre" placeholder="Joan Sebastian Vargas">
+        <label for="tipo">Tipo de usuario</label>
+        <select id="tipo">
+          <option value="">ciudadano (por defecto)</option>
+          <option>voluntario</option><option>coordinador</option><option>administrador</option>
+        </select>
+        <label for="zona">Zona principal</label>
+        <input id="zona" placeholder="centro">
+      </div>
+      <button class="principal" type="submit" id="boton-entrar">Entrar</button>
+      <div id="aviso-login" class="aviso oculto"></div>
+    </form>
+  </div>
+</section>
+
+<!-- ======================= Panel principal ======================= -->
+<section id="vista-app" class="oculto">
+  <nav id="menu"></nav>
+  <main id="contenido"></main>
+</section>
+
+<script>
+  const estado = { token: null, grupos: [], seccion: "Inicio", historial: [] };
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- comunicación con el servidor ----------
+  async function llamar(ruta, datos) {
+    try {
+      const respuesta = await fetch(ruta, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(datos)
+      });
+      return await respuesta.json();
+    } catch (error) {
+      return { ok: false, texto: "No hay conexión con el servidor.\nVerifique que esté corriendo:  elixir web.exs" };
+    }
+  }
+
+  function crear(etiqueta, atributos = {}, hijos = []) {
+    const elemento = document.createElement(etiqueta);
+    for (const [clave, valor] of Object.entries(atributos)) {
+      if (clave === "texto") elemento.textContent = valor;
+      else if (clave.startsWith("on")) elemento.addEventListener(clave.slice(2), valor);
+      else elemento.setAttribute(clave, valor);
+    }
+    for (const hijo of [].concat(hijos)) if (hijo) elemento.append(hijo);
+    return elemento;
+  }
+
+  function cajaResultado(linea, ok, texto) {
+    return crear("div", { class: "resultado" + (ok ? "" : " error") }, [
+      crear("div", { class: "cabeza" }, [crear("span", { texto: (ok ? "✓ " : "✗ ") + linea })]),
+      crear("pre", { texto: texto || "(sin resultados)" })
+    ]);
+  }
+
+  // ---------- inicio de sesión ----------
+  if (location.protocol === "file:") $("aviso-archivo").classList.remove("oculto");
+
+  function avisoLogin(texto, ok) {
+    const aviso = $("aviso-login");
+    aviso.className = "aviso " + (ok ? "ok" : "error");
+    aviso.textContent = texto;
+  }
+
+  $("form-login").addEventListener("submit", async (evento) => {
+    evento.preventDefault();
+    const usuario = $("usuario").value.trim();
+    if (!usuario || !$("contrasena").value) return avisoLogin("Escriba el usuario y la contraseña.", false);
+    if (/\s/.test(usuario)) return avisoLogin("El usuario no puede tener espacios. Use por ejemplo: " +
+      usuario.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 2).join(".") + "\nEl nombre completo va en el campo «Nombre completo».", false);
+
+    $("boton-entrar").disabled = true;
+    const r = await llamar("/api/conectar", {
+      usuario, contrasena: $("contrasena").value, nombre: $("nombre").value,
+      tipo: $("tipo").value, zona: $("zona").value
+    });
+    $("boton-entrar").disabled = false;
+    if (!r.ok) return avisoLogin(r.texto, false);
+
+    estado.token = r.token;
+    $("contrasena").value = "";
+    $("aviso-login").className = "aviso oculto";
+    $("quien").innerHTML = "";
+    $("quien").append(crear("div", { texto: r.nombre }), crear("small", { texto: `@${r.usuario} · ${r.tipo} · zona ${r.zona}` }));
+    await abrirPanel(r.mensaje);
+  });
+
+  async function abrirPanel(mensaje) {
+    const r = await llamar("/api/acciones", { token: estado.token });
+    if (!r.ok) return avisoLogin(r.texto, false);
+    estado.grupos = r.grupos;
+    estado.historial = [{ linea: "conectar", ok: true, texto: mensaje }];
+    $("vista-login").classList.add("oculto");
+    $("vista-app").classList.remove("oculto");
+    $("quien").classList.remove("oculto");
+    $("boton-salir").classList.remove("oculto");
+    dibujarMenu();
+    mostrarSeccion("Inicio");
+  }
+
+  $("boton-salir").addEventListener("click", async () => {
+    await llamar("/api/salir", { token: estado.token });
+    cerrarPanel("Sesión cerrada. ¡Hasta pronto!", true);
+  });
+
+  function cerrarPanel(texto, ok) {
+    estado.token = null;
+    $("vista-app").classList.add("oculto");
+    $("quien").classList.add("oculto");
+    $("boton-salir").classList.add("oculto");
+    $("vista-login").classList.remove("oculto");
+    avisoLogin(texto, ok);
+  }
+
+  // ---------- menú y secciones ----------
+  function dibujarMenu() {
+    const menu = $("menu");
+    menu.innerHTML = "";
+    const boton = (nombre) => crear("button", { texto: nombre, "data-seccion": nombre, onclick: () => mostrarSeccion(nombre) });
+    menu.append(boton("Inicio"), crear("div", { class: "separador" }));
+    for (const g of estado.grupos) menu.append(boton(g.grupo));
+    menu.append(crear("div", { class: "separador" }), boton("Consola de comandos"));
+  }
+
+  function mostrarSeccion(nombre) {
+    estado.seccion = nombre;
+    for (const b of document.querySelectorAll("nav button")) b.classList.toggle("activo", b.dataset.seccion === nombre);
+    const contenido = $("contenido");
+    contenido.innerHTML = "";
+    if (nombre === "Inicio") return seccionInicio(contenido);
+    if (nombre === "Consola de comandos") return seccionConsola(contenido);
+    const grupo = estado.grupos.find((g) => g.grupo === nombre);
+    contenido.append(
+      crear("div", { class: "titulo-seccion" }, [crear("h1", { texto: nombre }), crear("span", { texto: `${grupo.acciones.length} acciones` })]),
+      crear("div", { id: "resultado" }),
+      crear("div", { class: "acciones" }, grupo.acciones.map(tarjetaAccion))
+    );
+  }
+
+  async function seccionInicio(contenido) {
+    const permitido = estado.grupos.some((g) => g.acciones.some((a) => a.comando === "resumen"));
+    contenido.append(crear("div", { class: "titulo-seccion" }, [crear("h1", { texto: "Inicio" }),
+      crear("span", { texto: "Elija una sección en el menú de la izquierda" })]));
+    const caja = crear("div", { id: "resultado" });
+    contenido.append(caja);
+    const ultimo = estado.historial[0];
+    caja.append(cajaResultado(ultimo.linea, ultimo.ok, ultimo.texto));
+    const linea = permitido ? "resumen" : "necesidades_pendientes";
+    const r = await llamar("/api/comando", { token: estado.token, linea });
+    if (estado.seccion === "Inicio") caja.append(cajaResultado(linea, r.ok, r.texto));
+  }
+
+  function seccionConsola(contenido) {
+    const entrada = crear("input", { placeholder: 'Ejemplo: registrar_necesidad agua 30 critica centro "Punto 3"', autocomplete: "off" });
+    const historial = crear("div", { class: "historial" });
+    const pintar = () => { historial.innerHTML = ""; for (const h of estado.historial) historial.append(cajaResultado(h.linea, h.ok, h.texto)); };
+    const form = crear("form", { onsubmit: async (e) => {
+      e.preventDefault();
+      const linea = entrada.value.trim();
+      if (!linea) return;
+      entrada.value = "";
+      const r = await llamar("/api/comando", { token: estado.token, linea });
+      registrar(linea, r);
+      pintar();
+    } }, [entrada, crear("button", { class: "principal", type: "submit", texto: "Ejecutar" })]);
+    contenido.append(
+      crear("div", { class: "titulo-seccion" }, [crear("h1", { texto: "Consola de comandos" }), crear("span", { texto: "Escriba ayuda para ver todos los comandos" })]),
+      crear("div", { class: "consola" }, [form, historial])
+    );
+    pintar();
+    entrada.focus();
+  }
+
+  // ---------- tarjetas de acciones ----------
+  // Lista de sugerencias (datalist) de una tabla de códigos: se elige un código o se escribe otro valor.
+  function listaCodigos(campo) {
+    const id = "codigos-" + campo.tabla;
+    if (!$(id)) {
+      document.body.append(crear("datalist", { id }, campo.opciones.map((o, i) => crear("option", { value: o, texto: campo.nombres[i] }))));
+    }
+    return id;
+  }
+
+  function control(campo) {
+    if (campo.libre) {
+      const entrada = crear("input", { type: "text", autocomplete: "off", placeholder: "elija un código o escriba" });
+      entrada.setAttribute("list", listaCodigos(campo));
+      return entrada;
+    }
+    if (campo.opciones && campo.opciones.length) {
+      const opciones = campo.clave ? [crear("option", { value: "", texto: "—" })] : [];
+      const nombres = campo.nombres || campo.opciones;
+      return crear("select", {}, opciones.concat(campo.opciones.map((o, i) => crear("option", { value: o, texto: nombres[i] }))));
+    }
+    return crear("input", { type: campo.oculto ? "password" : "text", autocomplete: "off" });
+  }
+
+  function tarjetaAccion(accion) {
+    const controles = [];
+    const filas = [];
+    const agregar = (campo, indice) => {
+      const c = control(campo);
+      c.id = `${accion.comando}-${indice}`;
+      controles.push(c);
+      filas.push(crear("label", { for: c.id, texto: campo.etiqueta }), c);
+    };
+    accion.campos.forEach((campo, i) => agregar(campo, i));
+    if (accion.opcionales.length) filas.push(crear("div", { class: "opcionales", texto: "Opcional" }));
+    accion.opcionales.forEach((campo, i) => agregar(campo, accion.campos.length + i));
+    const boton = crear("button", { class: "principal", type: "submit", texto: accion.campos.length ? "Ejecutar" : "Ver" });
+    const form = crear("form", { onsubmit: async (e) => {
+      e.preventDefault();
+      boton.disabled = true;
+      const r = await llamar("/api/accion", { token: estado.token, comando: accion.id || accion.comando, valores: controles.map((c) => c.value) });
+      boton.disabled = false;
+      registrar(r.linea || accion.comando, r);
+      const caja = $("resultado");
+      caja.innerHTML = "";
+      caja.append(cajaResultado(r.linea || accion.texto, r.ok, r.texto));
+      $("contenido").scrollTop = 0;
+      window.scrollTo(0, 0);
+      if (r.ok && accion.campos.length) for (const c of controles) if (c.tagName === "INPUT") c.value = "";
+    } }, filas.concat(boton));
+    return crear("div", { class: "tarjeta accion" }, [
+      crear("h3", { texto: accion.texto }), crear("div", { class: "comando", texto: accion.comando }), form
+    ]);
+  }
+
+  function registrar(linea, r) {
+    estado.historial.unshift({ linea, ok: r.ok, texto: r.texto });
+    estado.historial = estado.historial.slice(0, 30);
+    if (!r.ok && (r.texto || "").startsWith("Sesión vencida")) cerrarPanel(r.texto, false);
+  }
+</script>
+</body>
+</html>

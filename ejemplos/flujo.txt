@@ -1,0 +1,48 @@
+# Flujo de ejemplo del enunciado, comando por comando.
+#   mix run consola.exs ejemplos/flujo.txt
+# Ejecútelo sobre datos vacíos: si los códigos ya existen, el sistema lo informa.
+
+conectar admin admin123 administrador centro nombre="Administrador del sistema"
+registrar_zona centro "Zona Centro" critico 1200
+registrar_zona sector3 "Sector 3" alto 300 padre=centro
+registrar_zona punto3 "Punto de atención sector 3" alto 40 padre=sector3
+registrar_zona norte "Zona Norte" alto 800
+desconectar
+
+conectar laura 1234 coordinador centro nombre="Laura Gómez"
+registrar_necesidad agua 30 critica centro "Punto de atención sector 3"
+registrar_recurso R001 agua 50 litros centro_acopio
+asignar_recurso N001 agua 30
+desconectar
+
+conectar pedro 1234 coordinador centro nombre="Pedro Ruiz"
+registrar_necesidad agua 25 alta centro "Albergue temporal del parque"
+asignar_recurso N002 agua 25
+desconectar
+
+conectar ana 1234 ciudadano norte nombre="Ana López"
+reportar_persona 1094 "Andrés López" norte localizada edad=34
+reportar_mascota perdida perro "Luna" negra mediana norte 3001112233 caracteristicas="collar rojo, oreja caída"
+desconectar
+
+conectar laura 1234
+registrar_albergue A01 "Albergue Norte" norte 150
+desconectar
+
+conectar carlos 1234 voluntario norte nombre="Carlos Pérez"
+registrar_ingreso A01 1094
+reportar_mascota encontrada perro desconocido negra mediana norte 3004445566 caracteristicas="collar rojo, asustada"
+buscar_coincidencias
+desconectar
+
+conectar maria 1234 ciudadano norte nombre="María López"
+enviar_mensaje 1094 "Andrés, estamos bien, te buscamos en el Albergue Norte"
+listar_mensajes 1094
+buscar_persona 1094
+desconectar
+
+conectar laura 1234
+resumen
+recursos_criticos
+necesidades_pendientes
+desconectar
