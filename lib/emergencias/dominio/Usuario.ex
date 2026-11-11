@@ -9,7 +9,7 @@ defmodule Emergencias.Dominio.Usuario do
   """
 
   alias Emergencias.Dominio.Comun
-  alias Emergencias.Anexos.Codigos
+  alias Emergencias.Dominio.Codigos
 
   defstruct [:username, :hash, :sal, :nombre, :tipo, :zona, :creado]
 

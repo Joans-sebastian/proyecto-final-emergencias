@@ -1,17 +1,17 @@
-defmodule Emergencias.Anexos.Codigos do
+defmodule Emergencias.Dominio.Codigos do
   @moduledoc """
   Tablas de códigos para registrar más rápido: se puede escribir `ES01` o `perro`.
   Se guarda siempre el valor.
 
   Especie y color solo aceptan sus códigos. Con "otro" (`ES03`, `CO05`) se
   escribe cuál es en `especie_otra=` o `color_otro=`. Los barrios no están
-  aquí: se registran a mano (`Emergencias.Anexos.Barrios`) y reciben B01, B02...
+  aquí: se registran a mano (`Emergencias.Estado.Barrios`) y reciben B01, B02...
 
-      iex> Emergencias.Anexos.Codigos.traducir("especie", "es01")
+      iex> Emergencias.Dominio.Codigos.traducir("especie", "es01")
       "perro"
   """
 
-  alias Emergencias.Anexos.Barrios
+  alias Emergencias.Estado.Barrios
   alias Emergencias.Dominio.Comun
 
   # Cada tabla: {nombre, título, dónde se usa, filas}. Fila: {código, valor, descripción}.
@@ -135,11 +135,11 @@ defmodule Emergencias.Anexos.Codigos do
   Especie y color: solo se aceptan los códigos de la tabla (o su valor). Si se
   elige "otro" (`ES03` o `CO05`), se guarda lo que se escribió en `otro`.
 
-      iex> Emergencias.Anexos.Codigos.con_otro("especie", "ES01", nil)
+      iex> Emergencias.Dominio.Codigos.con_otro("especie", "ES01", nil)
       {:ok, "perro"}
-      iex> Emergencias.Anexos.Codigos.con_otro("especie", "es03", "Iguana")
+      iex> Emergencias.Dominio.Codigos.con_otro("especie", "es03", "Iguana")
       {:ok, "iguana"}
-      iex> Emergencias.Anexos.Codigos.con_otro("color", "CO05", "")
+      iex> Emergencias.Dominio.Codigos.con_otro("color", "CO05", "")
       {:error, "Eligió CO05 (otro color): escriba cuál en color_otro=.."}
   """
   def con_otro(tabla, entrada, otro) do
@@ -170,7 +170,7 @@ defmodule Emergencias.Anexos.Codigos do
   @doc """
   Recursiva. Busca un código en las filas (sin importar mayúsculas).
 
-      iex> Emergencias.Anexos.Codigos.buscar(Emergencias.Anexos.Codigos.filas("tamano"), "ta2").valor
+      iex> Emergencias.Dominio.Codigos.buscar(Emergencias.Dominio.Codigos.filas("tamano"), "ta2").valor
       "mediana"
   """
   def buscar([], _codigo), do: nil
@@ -194,7 +194,7 @@ defmodule Emergencias.Anexos.Codigos do
   de un barrio nuevo: si es nuevo, lo registra con `zona` y le da el siguiente
   código (B01, B02...).
 
-      iex> Emergencias.Anexos.Codigos.barrio(nil, "centro")
+      iex> Emergencias.Dominio.Codigos.barrio(nil, "centro")
       {:ok, nil}
   """
   def barrio(entrada, zona) do
@@ -232,7 +232,7 @@ defmodule Emergencias.Anexos.Codigos do
   Retorna la zona y el barrio. Si hay barrio y no zona, usa la zona del barrio.
   En la zona también se puede escribir el código de un barrio (`B01`).
 
-      iex> Emergencias.Anexos.Codigos.ubicacion("sector3", nil)
+      iex> Emergencias.Dominio.Codigos.ubicacion("sector3", nil)
       {:ok, "sector3", nil}
   """
   def ubicacion(zona, barrio_entrada) do
@@ -268,7 +268,7 @@ defmodule Emergencias.Anexos.Codigos do
   @doc """
   Códigos para las preguntas de `ingresar`.
 
-      iex> Emergencias.Anexos.Codigos.opciones("tamano")
+      iex> Emergencias.Dominio.Codigos.opciones("tamano")
       "TA1=pequena, TA2=mediana, TA3=grande"
   """
   def opciones(tabla), do: Enum.map_join(filas(tabla), ", ", &"#{&1.codigo}=#{&1.valor}")
@@ -276,7 +276,7 @@ defmodule Emergencias.Anexos.Codigos do
   @doc """
   Opciones de las listas de la web y las ventanas.
 
-      iex> Emergencias.Anexos.Codigos.etiquetas("tamano") |> hd()
+      iex> Emergencias.Dominio.Codigos.etiquetas("tamano") |> hd()
       {"TA1", "TA1 – pequena"}
   """
   def etiquetas("barrio"),
@@ -382,7 +382,7 @@ defmodule Emergencias.Anexos.Codigos do
     Enum.join(
       [
         "# Base de datos de códigos\n\n" <>
-          "Generado con `elixir codigos.exs` desde `lib/emergencias/anexos/Codigos.ex`.\n" <>
+          "Generado con `elixir codigos.exs` desde `lib/emergencias/dominio/Codigos.ex`.\n" <>
           "En cada registro puede escribir el **código** o el **valor**; se guarda el valor.\n\n" <>
           "Ejemplos:\n\n" <>
           "```\n" <>

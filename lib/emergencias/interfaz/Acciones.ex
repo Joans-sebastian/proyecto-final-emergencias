@@ -13,7 +13,7 @@ defmodule Emergencias.Interfaz.Acciones do
   """
 
   alias Emergencias.Permisos
-  alias Emergencias.Anexos.Codigos
+  alias Emergencias.Dominio.Codigos
   alias Emergencias.Dominio.Necesidad
 
   @doc "Secciones con sus acciones, en el orden en que se muestran."

@@ -1,4 +1,4 @@
-# Muestra y exporta la base de datos de códigos (Emergencias.Anexos.Codigos).
+# Muestra y exporta la base de datos de códigos (Emergencias.Dominio.Codigos).
 #
 #   elixir codigos.exs            -> todas las tablas en pantalla + CODIGOS.md + datos/codigos.csv
 #   elixir codigos.exs especie    -> solo una tabla en pantalla
@@ -9,7 +9,7 @@ Code.require_file("cargar.exs", __DIR__)
 Cargar.codigo()
 
 defmodule ScriptCodigos do
-  alias Emergencias.Anexos.Codigos
+  alias Emergencias.Dominio.Codigos
 
   def main([]) do
     Util2.mostrar(Codigos.formato_todas(), :mensaje)

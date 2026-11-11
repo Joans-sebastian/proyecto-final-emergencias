@@ -8,7 +8,7 @@ defmodule Emergencias.Dominio.Persona do
   """
 
   alias Emergencias.Dominio.Comun
-  alias Emergencias.Anexos.Codigos
+  alias Emergencias.Dominio.Codigos
 
   defstruct [
     :id,

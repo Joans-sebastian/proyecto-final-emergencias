@@ -105,8 +105,6 @@ defmodule Emergencias.Permisos do
      "Códigos"},
     {"registrar_barrio", 1, "registrar_barrio \"nombre del barrio\" zona",
      "Registra un barrio a mano con su zona; recibe B01, el siguiente B02 y así", "Códigos"}
-    # Espacio para los comandos de los módulos que se agreguen más adelante:
-    # {"nuevo_comando", nivel, "uso", "descripción", "Grupo"},
   ]
 
   @tabla Map.new(@comandos, fn {comando, nivel, uso, descripcion, grupo} ->

@@ -10,7 +10,8 @@ defmodule Emergencias.Comandos do
   """
 
   alias Emergencias.{Permisos, Servicios, Sesiones}
-  alias Emergencias.Anexos.{Barrios, Codigos}
+  alias Emergencias.Dominio.Codigos
+  alias Emergencias.Estado.Barrios
   alias Emergencias.Interfaz.{Formato, Analizador}
 
   alias Emergencias.Dominio.{
@@ -598,17 +599,12 @@ defmodule Emergencias.Comandos do
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # Espacio para los comandos de los módulos que se agreguen más adelante.
-  # Agregue aquí sus cláusulas de despachar/4 (y el comando en Permisos).
-  # ---------------------------------------------------------------------------
-
-  # Anexo: base de datos de códigos (Emergencias.Anexos.Codigos).
+  # Base de datos de códigos (Emergencias.Dominio.Codigos).
   defp despachar("codigos", [], _op, _u), do: {:ok, Codigos.indice()}
   defp despachar("codigos", ["todas"], _op, _u), do: {:ok, Codigos.formato_todas()}
   defp despachar("codigos", [tabla], _op, _u), do: Codigos.formato_tabla(String.downcase(tabla))
 
-  # Anexo: barrios registrados a mano (Emergencias.Anexos.Barrios). La zona es
+  # Barrios registrados a mano (Emergencias.Estado.Barrios). La zona es
   # el último dato; el nombre puede ir entre comillas o en varias palabras.
   defp despachar("registrar_barrio", argumentos, _op, _u) when length(argumentos) >= 2 do
     {palabras, [zona]} = Enum.split(argumentos, -1)

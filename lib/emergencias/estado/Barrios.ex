@@ -1,4 +1,4 @@
-defmodule Emergencias.Anexos.Barrios do
+defmodule Emergencias.Estado.Barrios do
   @moduledoc """
   Barrios registrados a mano (`barrios.txt`).
 
@@ -47,9 +47,9 @@ defmodule Emergencias.Anexos.Barrios do
   @doc """
   **Recursiva.** Siguiente código libre: B01, B02, ... (salta los que ya existen).
 
-      iex> Emergencias.Anexos.Barrios.siguiente_codigo(%{})
+      iex> Emergencias.Estado.Barrios.siguiente_codigo(%{})
       "B01"
-      iex> Emergencias.Anexos.Barrios.siguiente_codigo(%{"B01" => :x, "B02" => :y})
+      iex> Emergencias.Estado.Barrios.siguiente_codigo(%{"B01" => :x, "B02" => :y})
       "B03"
   """
   def siguiente_codigo(existentes, numero \\ 1) do

@@ -1,6 +1,6 @@
 defmodule CodigosTest do
   @moduledoc """
-  Pruebas del anexo "Base de datos de códigos": los registros aceptan el código
+  Pruebas de la base de datos de códigos: los registros aceptan el código
   (ES01, PE3, B01...) o el valor (perro, localizada...) y guardan el valor.
   Especie y color solo aceptan sus códigos (con "otro" se escribe cuál) y los
   barrios se registran a mano: B01, B02... en orden.
@@ -10,12 +10,13 @@ defmodule CodigosTest do
 
   import Emergencias.Prueba
 
-  alias Emergencias.Anexos.{Barrios, Codigos}
+  alias Emergencias.Dominio.Codigos
+  alias Emergencias.Estado.Barrios
   alias Emergencias.Dominio.{Mascota, Persona}
   alias Emergencias.Sesion
 
-  doctest Emergencias.Anexos.Codigos
-  doctest Emergencias.Anexos.Barrios
+  doctest Emergencias.Dominio.Codigos
+  doctest Emergencias.Estado.Barrios
 
   describe "tablas (funciones puras)" do
     test "traducir acepta el código en mayúsculas o minúsculas y deja igual lo que no es código" do

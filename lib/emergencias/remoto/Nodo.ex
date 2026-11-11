@@ -1,4 +1,4 @@
-defmodule Emergencias.Anexos.Nodo do
+defmodule Emergencias.Remoto.Nodo do
   @moduledoc """
   Inicia el nodo de Erlang desde el script, como en la guía "Aplicaciones
   distribuidas": `Node.start/2` + `Node.set_cookie/1`.
@@ -41,10 +41,10 @@ defmodule Emergencias.Anexos.Nodo do
   @doc """
   Nombre del nodo servidor según los argumentos del script.
 
-      iex> Emergencias.Anexos.Nodo.nodo_servidor(["192.168.1.20"])
+      iex> Emergencias.Remoto.Nodo.nodo_servidor(["192.168.1.20"])
       :"servidor@192.168.1.20"
 
-      iex> Emergencias.Anexos.Nodo.nodo_servidor(["central@10.0.0.5"])
+      iex> Emergencias.Remoto.Nodo.nodo_servidor(["central@10.0.0.5"])
       :"central@10.0.0.5"
   """
   def nodo_servidor([]), do: String.to_atom("servidor@#{equipo()}")
@@ -62,10 +62,10 @@ defmodule Emergencias.Anexos.Nodo do
   - `[servidor, ip]`: la IP que escribió el usuario;
   - `[servidor]`: la primera IPv4 de la red local de este equipo.
 
-      iex> Emergencias.Anexos.Nodo.ip_cliente([])
+      iex> Emergencias.Remoto.Nodo.ip_cliente([])
       nil
 
-      iex> Emergencias.Anexos.Nodo.ip_cliente(["192.168.1.20", "192.168.1.21"])
+      iex> Emergencias.Remoto.Nodo.ip_cliente(["192.168.1.20", "192.168.1.21"])
       "192.168.1.21"
   """
   def ip_cliente([]), do: nil

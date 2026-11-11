@@ -25,7 +25,7 @@ proyecto si hace falta (`mix compile`) y arranca el sistema.
 | **Modo distribuido**: cliente con la consola completa (terminal 2, 3, …) | `elixir cliente.exs` |
 | **Modo distribuido**: cliente con menú y send/receive (terminal 2, 3, …) | `elixir cliente_remoto.exs` |
 | Generar la cookie compartida (`my_cookie`) | `elixir cookie.exs` |
-| Pruebas automáticas (43 pruebas y 13 doctests) | `mix test` |
+| Pruebas automáticas (62 pruebas y 22 doctests) | `mix test` |
 | Consola de Elixir | `iex -S mix` |
 
 Con `mix run archivo.exs` también funcionan (por ejemplo `mix run consola.exs`).
@@ -64,7 +64,7 @@ Hay dos clientes, y el servidor atiende a los dos al mismo tiempo:
 | `cliente.exs` | Consola completa. Llama a las sesiones del servidor con `:erpc`. |
 | `cliente_remoto.exs` | Menú como el del cajero. Envía mensajes con `send({:servicio_emergencias, nodo}, {..., self(), ...})` y espera la respuesta con `receive ... after`. |
 
-`Emergencias.Anexos.ServicioRemoto` es el proceso registrado
+`Emergencias.Remoto.ServicioRemoto` es el proceso registrado
 `:servicio_emergencias` del servidor. Su `loop` recursivo atiende
 `{:conectar, pid, usuario, contraseña}`, `{:comando, pid, linea}`,
 `{:estado_zonas, pid}` y `{:fin, pid}` (responde `:adios`). Cada comando se
@@ -120,7 +120,7 @@ Los roles son acumulativos: ciudadano < voluntario < coordinador < administrador
 ### Base de datos de códigos
 
 Para que el registro sea más fácil de escribir y estudiar, cada lista cerrada
-tiene una tabla de códigos en `lib/emergencias/anexos/Codigos.ex`: tipo de
+tiene una tabla de códigos en `lib/emergencias/dominio/Codigos.ex`: tipo de
 reporte (`MT1`), especie (`ES01`), color (`CO01`), tamaño (`TA2`), estado de la
 persona (`PE3`), tipo de documento (`CC`), tipo de necesidad (`NT01`), prioridad
 (`PR1`), nivel de zona (`NV1`) y rol (`RO2`).
@@ -132,7 +132,7 @@ Se puede escribir el **código o el valor**; se guarda el valor.
   otro. Con `CO05` se escribe cuál en `color_otro=`.
 - **Barrio:** no hay barrios fijos. Cada barrio se registra a mano con su nombre y
   su zona y recibe el siguiente código: el primero `B01`, el segundo `B02` y así
-  consecutivamente (`lib/emergencias/anexos/Barrios.ex`, se guardan en
+  consecutivamente (`lib/emergencias/estado/Barrios.ex`, se guardan en
   `datos/barrios.txt`). También se registra solo si al reportar se escribe el
   nombre de un barrio nuevo junto con la zona.
 
@@ -161,28 +161,26 @@ lib/
   emergencias/
     Aplicacion.ex                 Árbol de supervisión (OTP)
     dominio/                      Structs: crear, ingresar, to_string (String.Chars) y reglas puras
-      Comun.ex  Usuario.ex  Zona.ex  Necesidad.ex  Recurso.ex
+      Comun.ex  Usuario.ex  Zona.ex  Necesidad.ex  Recurso.ex  Codigos.ex
       Persona.ex  Mensaje.ex  Mascota.ex  Albergue.ex
     estado/                       GenServers: dueños del estado, persisten cada cambio
       GestorUsuarios.ex  GestorZonas.ex  GestorRecursos.ex  GestorNecesidades.ex
       GestorPersonas.ex  GestorMensajes.ex  GestorMascotas.ex  GestorAlbergues.ex
-      Bitacora.ex  Persistente.ex
+      Bitacora.ex  Persistente.ex  Barrios.ex
     sesiones/Sesion.ex  Sesiones.ex   Un proceso por usuario conectado
     Comandos.ex  Permisos.ex  Servicios.ex
     Demostracion.ex  Distribuido.ex   main de la demostración y del modo servidor/cliente
     Web.ex  web/Servidor.ex  web/Rutas.ex  web/Fichas.ex   Página web sin dependencias
     persistencia/Archivo.ex       Archivos de texto plano
     interfaz/Consola.ex  Grafica.ex  Ventanas.ex  Analizador.ex  Formato.ex
-    anexos/LEEME.md               Espacio para los módulos que faltan por ver en clase
-    anexos/Nodo.ex  ServicioRemoto.ex  ClienteRemoto.ex   Anexo "Aplicaciones distribuidas" (nodos, send/receive)
+    remoto/Nodo.ex  ServicioRemoto.ex  ClienteRemoto.ex   Aplicaciones distribuidas (nodos, send/receive)
 priv/ventanas/dialogo.py          Ventanas emergentes (tkinter), como mostrar_dialogo.py de clase
 priv/web/index.html               Página web
 config/config.exs                 Carpeta de datos (y la de pruebas)
 cargar.exs                        Permite ejecutar los scripts con `elixir archivo.exs`
 consola.exs  ventanas.exs  web.exs  demostracion.exs  servidor.exs  cliente.exs
-cliente_remoto.exs  cookie.exs  ejemplos/flujo.txt
-test/dominio_test.exs  test/sistema_test.exs  test/anexos_test.exs   Pruebas ExUnit
-informe/                          Informe y guion de exposición (HTML y PDF)
+cliente_remoto.exs  cookie.exs  codigos.exs  ejemplos/flujo.txt
+test/dominio_test.exs  sistema_test.exs  remoto_test.exs  codigos_test.exs   Pruebas ExUnit
 ```
 
 ### Convenciones vistas en clase
@@ -196,9 +194,6 @@ informe/                          Informe y guion de exposición (HTML y PDF)
   privadas que hacen cada paso.
 - **Modo guiado**: en la consola, un comando de registro sin datos (por
   ejemplo `registrar_necesidad`) pide cada campo con `ingresar` de su entidad.
-- **Espacio para lo que falta**: los módulos que el profesor explique después
-  se agregan siguiendo `lib/emergencias/anexos/LEEME.md`. `Aplicacion.ex`,
-  `Permisos.ex` y `Comandos.ex` tienen un espacio marcado para conectarlos.
 
 ## Pensamiento computacional
 

@@ -17,7 +17,7 @@ defmodule Emergencias.Dominio.Necesidad do
   """
 
   alias Emergencias.Dominio.Comun
-  alias Emergencias.Anexos.Codigos
+  alias Emergencias.Dominio.Codigos
 
   defstruct [
     :id,

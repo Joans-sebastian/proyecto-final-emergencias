@@ -14,7 +14,7 @@ defmodule Emergencias do
   | `demostracion.exs`             | demostracion | `Emergencias.Demostracion`           |
   | `servidor.exs`         | servidor    | `Emergencias.Distribuido`    |
   | `cliente.exs`          | cliente     | `Emergencias.Distribuido`    |
-  | `cliente_remoto.exs`   | (directo)   | `Emergencias.Anexos.ClienteRemoto` |
+  | `cliente_remoto.exs`   | (directo)   | `Emergencias.Remoto.ClienteRemoto` |
   """
 
   alias Emergencias.{Demostracion, Distribuido, Web}

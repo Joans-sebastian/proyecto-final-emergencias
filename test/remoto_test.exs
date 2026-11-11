@@ -1,6 +1,6 @@
-defmodule AnexosTest do
+defmodule RemotoTest do
   @moduledoc """
-  Pruebas del anexo "Aplicaciones distribuidas": el proceso registrado
+  Pruebas de "Aplicaciones distribuidas": el proceso registrado
   :servicio_emergencias atiende mensajes con send/receive.
 
   Se le envían los mensajes con la tupla {nombre, nodo}, igual que desde otro
@@ -11,7 +11,7 @@ defmodule AnexosTest do
 
   import Emergencias.Prueba
 
-  doctest Emergencias.Anexos.Nodo
+  doctest Emergencias.Remoto.Nodo
 
   @servicio {:servicio_emergencias, node()}
 

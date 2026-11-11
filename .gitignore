@@ -27,3 +27,8 @@ emergencias-*.tar
 /datos/*.txt
 /datos_demo/
 /.elixir_ls/
+
+# Archivos que genera codigos.exs y la cookie de cookie.exs
+/CODIGOS.md
+/datos/*.csv
+/my_cookie

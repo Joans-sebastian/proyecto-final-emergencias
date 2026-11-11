@@ -15,7 +15,8 @@ defmodule Emergencias.Aplicacion do
       ├── RegistroSesiones           Registry: usuario → proceso de su sesión
       ├── SupervisorSesiones         DynamicSupervisor
       │   └── Sesion (una por usuario conectado, se crean y cierran en ejecución)
-      └── Anexos.ServicioRemoto      proceso registrado :servicio_emergencias (send/receive entre nodos)
+      ├── Remoto.ServicioRemoto      proceso registrado :servicio_emergencias (send/receive entre nodos)
+      └── Estado.Barrios             GenServer: barrios registrados a mano (B01, B02...)
 
   Estrategia `one_for_one`: si un gestor falla, solo ese se reinicia y vuelve
   a cargar sus datos del archivo; los demás siguen atendiendo.
@@ -37,13 +38,11 @@ defmodule Emergencias.Aplicacion do
       Emergencias.Estado.GestorAlbergues,
       {Registry, keys: :unique, name: Emergencias.RegistroSesiones},
       {DynamicSupervisor, strategy: :one_for_one, name: Emergencias.SupervisorSesiones},
-      # Espacio para los procesos de los módulos que se agreguen más adelante
-      # (ver lib/emergencias/anexos/LEEME.md).
-      # Anexo "Aplicaciones distribuidas": proceso registrado :servicio_emergencias
+      # Proceso registrado :servicio_emergencias
       # que atiende a los clientes de otros nodos con send/receive.
-      Emergencias.Anexos.ServicioRemoto,
-      # Anexo "Barrios": los barrios se registran a mano y reciben B01, B02...
-      Emergencias.Anexos.Barrios
+      Emergencias.Remoto.ServicioRemoto,
+      # Los barrios se registran a mano y reciben B01, B02...
+      Emergencias.Estado.Barrios
     ]
 
     opciones = [

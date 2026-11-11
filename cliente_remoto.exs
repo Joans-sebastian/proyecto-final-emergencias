@@ -9,4 +9,4 @@
 Code.require_file("cargar.exs", __DIR__)
 Cargar.codigo()
 
-Emergencias.Anexos.ClienteRemoto.main(System.argv())
+Emergencias.Remoto.ClienteRemoto.main(System.argv())

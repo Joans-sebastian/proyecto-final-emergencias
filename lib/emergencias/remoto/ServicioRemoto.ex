@@ -1,4 +1,4 @@
-defmodule Emergencias.Anexos.ServicioRemoto do
+defmodule Emergencias.Remoto.ServicioRemoto do
   @moduledoc """
   Servicio del nodo servidor que atiende a los clientes de otros nodos con
   **send/receive**, como la sede de Armenia atiende a los cajeros (guía

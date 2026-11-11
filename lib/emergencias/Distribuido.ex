@@ -8,11 +8,11 @@ defmodule Emergencias.Distribuido do
       elixir cliente_remoto.exs           # terminal 2, 3, ... (menú con send/receive)
 
   Los nodos se inician desde el script con `Node.start/2` y la cookie del
-  proyecto (ver `Emergencias.Anexos.Nodo`). Con una IP como argumento se usan
+  proyecto (ver `Emergencias.Remoto.Nodo`). Con una IP como argumento se usan
   nombres completos y funciona entre máquinas de la misma red.
   """
 
-  alias Emergencias.Anexos.Nodo
+  alias Emergencias.Remoto.Nodo
   alias Emergencias.Interfaz.Consola
 
   @doc """

@@ -15,7 +15,7 @@ defmodule Emergencias.Dominio.Zona do
   """
 
   alias Emergencias.Dominio.Comun
-  alias Emergencias.Anexos.Codigos
+  alias Emergencias.Dominio.Codigos
 
   defstruct [:codigo, :nombre, :tipo, :nivel, :personas, :padre, :creada, hijos: []]
 

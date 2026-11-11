@@ -1,6 +1,6 @@
-defmodule Emergencias.Anexos.ClienteRemoto do
+defmodule Emergencias.Remoto.ClienteRemoto do
   @moduledoc """
-  Cliente de otro nodo que habla con `Emergencias.Anexos.ServicioRemoto` con
+  Cliente de otro nodo que habla con `Emergencias.Remoto.ServicioRemoto` con
   **send/receive**, como el cajero con la sede (guía "Aplicaciones distribuidas").
 
       elixir cliente_remoto.exs                             # servidor en este equipo
@@ -21,7 +21,7 @@ defmodule Emergencias.Anexos.ClienteRemoto do
   bloqueado si el servidor no está activo.
   """
 
-  alias Emergencias.Anexos.{Nodo, ServicioRemoto}
+  alias Emergencias.Remoto.{Nodo, ServicioRemoto}
 
   # Debe ser mayor que lo que tarda la operación más lenta, más el viaje del mensaje.
   @timeout 15_000
