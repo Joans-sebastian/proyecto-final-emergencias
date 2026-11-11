@@ -168,12 +168,12 @@ defmodule Emergencias.Demostracion do
 
     ejecutar(
       u.ana,
-      ~s(reportar_mascota perdida perro "Luna" negra mediana norte 3001112233 caracteristicas="collar rojo, oreja caída")
+      ~s(reportar_mascota perdida perro "Luna" negro mediana norte 3001112233 caracteristicas="collar rojo, oreja caída")
     )
 
     ejecutar(
       u.carlos,
-      ~s(reportar_mascota encontrada perro desconocido negra mediana norte 3004445566 caracteristicas="collar rojo, asustada")
+      ~s(reportar_mascota encontrada perro desconocido negro mediana norte 3004445566 caracteristicas="collar rojo, asustada")
     )
 
     ejecutar(

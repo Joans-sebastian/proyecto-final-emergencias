@@ -8,14 +8,8 @@ defmodule Emergencias.Interfaz.Acciones do
   orden) y `opcionales` (`clave=valor`). Un campo puede tener `opciones`
   (lista cerrada) u `oculto: true` (contraseña).
 
-  Campos con la base de datos de códigos (`Emergencias.Anexos.Codigos`):
-
-  - `{etiqueta, {:codigos, tabla}}`: lista cerrada; se envía el código (`ES01`).
-  - `{etiqueta, {:sugerir, tabla}}`: se elige un código **o** se escribe otro
-    valor (por ejemplo una zona `centro` o un barrio `B07`).
-
-  En cada campo, `nombres` es lo que se ve (`ES01 – perro`) y `opciones` lo
-  que se envía (`ES01`).
+  Con códigos: `{:codigos, tabla}` = lista cerrada; `{:sugerir, tabla}` = lista
+  donde también se puede escribir.
   """
 
   alias Emergencias.Permisos
@@ -130,7 +124,8 @@ defmodule Emergencias.Interfaz.Acciones do
            [
              {"tipo_doc", "Tipo de documento", {:codigos, "tipo_doc"}},
              {"edad", "Edad"},
-             {"direccion", "Dirección o referencia"}
+             {"direccion", "Dirección o referencia"},
+             {"barrio", "Barrio: código (B01...) o nombre de uno nuevo"}
            ]
          ),
          accion("Buscar persona por documento", "buscar_persona", ["Documento"]),
@@ -165,16 +160,19 @@ defmodule Emergencias.Interfaz.Acciones do
            "reportar_mascota",
            [
              {"Tipo de reporte", {:codigos, "tipo_reporte"}},
-             {"Especie", {:sugerir, "especie"}},
+             {"Especie", {:codigos, "especie"}},
              "Nombre (o desconocido)",
-             {"Color", {:sugerir, "color"}},
+             {"Color", {:codigos, "color"}},
              {"Tamaño", {:codigos, "tamano"}},
              {"Zona o código de barrio", {:sugerir, "barrio"}},
              "Contacto"
            ],
            [
              {"caracteristicas", "Características"},
-             {"direccion", "Dirección o referencia"}
+             {"direccion", "Dirección o referencia"},
+             {"especie_otra", "Si la especie es ES03 (otro): ¿cuál?"},
+             {"color_otro", "Si el color es CO05 (otro): ¿cuál?"},
+             {"barrio", "Barrio: código (B01...) o nombre de uno nuevo"}
            ]
          ),
          accion("Ver reportes", "listar_mascotas", [], [
@@ -205,6 +203,10 @@ defmodule Emergencias.Interfaz.Acciones do
       {"Códigos",
        [
          accion("Índice de tablas de códigos", "codigos"),
+         accion("Registrar barrio (recibe B01, B02...)", "registrar_barrio", [
+           "Nombre del barrio",
+           "Zona"
+         ]),
          accion("Ver una tabla de códigos", "codigos", [
            {"Tabla", Codigos.nombres() ++ ["todas"]}
          ])
@@ -286,9 +288,7 @@ defmodule Emergencias.Interfaz.Acciones do
   end
 
   @doc """
-  Texto de un campo para las ventanas emergentes: `*` al inicio = oculto; con
-  opciones, `etiqueta|opción1|opción2...` (el script de Python muestra una
-  lista desplegable).
+  Texto de un campo para las ventanas: `*` = oculto, `|` separa las opciones.
 
       iex> Emergencias.Interfaz.Acciones.texto_ventana(%{etiqueta: "Tamaño", oculto: false, nombres: ["TA1 – pequena", "TA2 – mediana"]})
       "Tamaño|TA1 – pequena|TA2 – mediana"
@@ -316,8 +316,7 @@ defmodule Emergencias.Interfaz.Acciones do
   # Para dos acciones con el mismo comando y distintos campos.
   defp con_id(accion, id), do: %{accion | id: id}
 
-  # Mismo patrón para todos los campos: qué se envía (opciones), qué se ve
-  # (nombres), si se puede escribir otro valor (libre) y de qué tabla salen.
+  # opciones = lo que se envía, nombres = lo que se ve.
   defp campo({etiqueta, {modo, tabla}}) when modo in [:codigos, :sugerir] do
     {codigos, nombres} = Codigos.etiquetas(tabla) |> Enum.unzip()
     base(etiqueta, codigos, nombres) |> Map.merge(%{libre: modo == :sugerir, tabla: tabla})

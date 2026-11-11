@@ -158,7 +158,7 @@ defmodule DominioTest do
           "lost",
           "perro",
           "Luna",
-          "negra",
+          "negro",
           "mediana",
           "norte",
           "1",
@@ -172,7 +172,7 @@ defmodule DominioTest do
           "found",
           "perro",
           "desconocido",
-          "negra",
+          "negro",
           "mediana",
           "norte",
           "2",
@@ -181,7 +181,7 @@ defmodule DominioTest do
         )
 
       {:ok, gato} =
-        Mascota.crear("C", "found", "gato", "Luna", "negra", "mediana", "norte", "3", "", "u")
+        Mascota.crear("C", "found", "gato", "Luna", "negro", "mediana", "norte", "3", "", "u")
 
       assert {80, _razones} = Mascota.puntaje(perdida, encontrada)
       assert {0, _} = Mascota.puntaje(perdida, gato)

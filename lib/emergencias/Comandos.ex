@@ -10,7 +10,7 @@ defmodule Emergencias.Comandos do
   """
 
   alias Emergencias.{Permisos, Servicios, Sesiones}
-  alias Emergencias.Anexos.Codigos
+  alias Emergencias.Anexos.{Barrios, Codigos}
   alias Emergencias.Interfaz.{Formato, Analizador}
 
   alias Emergencias.Dominio.{
@@ -470,7 +470,7 @@ defmodule Emergencias.Comandos do
              contacto,
              op["caracteristicas"],
              u.username,
-             Map.take(op, ~w(barrio direccion))
+             Map.take(op, ~w(especie_otra color_otro barrio direccion))
            ),
          do: guardar(m, u)
   end
@@ -607,6 +607,23 @@ defmodule Emergencias.Comandos do
   defp despachar("codigos", [], _op, _u), do: {:ok, Codigos.indice()}
   defp despachar("codigos", ["todas"], _op, _u), do: {:ok, Codigos.formato_todas()}
   defp despachar("codigos", [tabla], _op, _u), do: Codigos.formato_tabla(String.downcase(tabla))
+
+  # Anexo: barrios registrados a mano (Emergencias.Anexos.Barrios). La zona es
+  # el último dato; el nombre puede ir entre comillas o en varias palabras.
+  defp despachar("registrar_barrio", argumentos, _op, _u) when length(argumentos) >= 2 do
+    {palabras, [zona]} = Enum.split(argumentos, -1)
+
+    case Barrios.registrar(Enum.join(palabras, " "), zona) do
+      {:ok, b, :nuevo} ->
+        {:ok, "Barrio registrado: #{b.codigo} – #{b.nombre} (zona #{b.zona})"}
+
+      {:ok, b, :existente} ->
+        {:ok, "Ese barrio ya estaba registrado: #{b.codigo} – #{b.nombre} (zona #{b.zona})"}
+
+      error ->
+        error
+    end
+  end
 
   # Cualquier comando conocido con argumentos que no encajan con ninguna cláusula.
   defp despachar(comando, _argumentos, _op, _u), do: {:error, "Uso: #{Permisos.uso(comando)}"}

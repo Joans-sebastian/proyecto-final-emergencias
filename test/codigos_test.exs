@@ -1,18 +1,21 @@
 defmodule CodigosTest do
   @moduledoc """
   Pruebas del anexo "Base de datos de códigos": los registros aceptan el código
-  (ES01, PE3, B07...) o el valor (perro, localizada...) y guardan el valor.
+  (ES01, PE3, B01...) o el valor (perro, localizada...) y guardan el valor.
+  Especie y color solo aceptan sus códigos (con "otro" se escribe cuál) y los
+  barrios se registran a mano: B01, B02... en orden.
   """
 
   use ExUnit.Case, async: false
 
   import Emergencias.Prueba
 
-  alias Emergencias.Anexos.Codigos
+  alias Emergencias.Anexos.{Barrios, Codigos}
   alias Emergencias.Dominio.{Mascota, Persona}
   alias Emergencias.Sesion
 
   doctest Emergencias.Anexos.Codigos
+  doctest Emergencias.Anexos.Barrios
 
   describe "tablas (funciones puras)" do
     test "traducir acepta el código en mayúsculas o minúsculas y deja igual lo que no es código" do
@@ -38,10 +41,25 @@ defmodule CodigosTest do
       assert valores.("rol") == Emergencias.Dominio.Usuario.tipos()
     end
 
-    test "el barrio da la zona cuando no se escribe" do
-      assert Codigos.ubicacion("", "b04") == {:ok, "sur", "B04"}
-      assert {:error, mensaje} = Codigos.ubicacion("centro", "B99")
-      assert mensaje =~ "Barrio inválido"
+    test "especie y color: solo sus códigos; con otro se escribe cuál" do
+      assert Enum.map(Codigos.filas("especie"), &{&1.codigo, &1.valor}) ==
+               [{"ES01", "perro"}, {"ES02", "gato"}, {"ES03", "otro"}]
+
+      assert Enum.map(Codigos.filas("color"), &{&1.codigo, &1.valor}) ==
+               [
+                 {"CO01", "negro"},
+                 {"CO02", "blanco"},
+                 {"CO03", "cafe"},
+                 {"CO04", "gris"},
+                 {"CO05", "otro"}
+               ]
+
+      assert Codigos.con_otro("especie", "ES02", nil) == {:ok, "gato"}
+      assert Codigos.con_otro("color", "CO05", "Atigrado") == {:ok, "atigrado"}
+      assert {:error, mensaje} = Codigos.con_otro("especie", "ES03", "")
+      assert mensaje =~ "especie_otra"
+      assert {:error, mensaje} = Codigos.con_otro("especie", "iguana", nil)
+      assert mensaje =~ "ES01=perro, ES02=gato, ES03=otro"
     end
 
     test "formato de tabla con bordes y tabla desconocida" do
@@ -54,24 +72,74 @@ defmodule CodigosTest do
   describe "entidades con códigos" do
     test "mascota con códigos guarda los valores" do
       assert {:ok, m} =
-               Mascota.crear(nil, "MT1", "ES01", "Luna", "CO01", "TA2", "B07", "300", "", "ana")
+               Mascota.crear(nil, "MT1", "ES01", "Luna", "CO01", "TA2", "norte", "300", "", "ana")
 
-      assert {m.tipo, m.especie, m.color, m.tamano, m.zona, m.barrio} ==
-               {"perdida", "perro", "negro", "mediana", "norte", "B07"}
+      assert {m.tipo, m.especie, m.color, m.tamano, m.zona} ==
+               {"perdida", "perro", "negro", "mediana", "norte"}
     end
 
-    test "persona con códigos y datos opcionales" do
+    test "mascota con especie y color 'otro' guarda lo que se escribió" do
+      extras = %{"especie_otra" => "Conejo", "color_otro" => "Atigrado"}
+
+      assert {:ok, m} =
+               Mascota.crear(nil, "MT2", "ES03", "", "CO05", "TA1", "norte", "300", "", "ana", extras)
+
+      assert {m.especie, m.color} == {"conejo", "atigrado"}
+
+      assert {:error, mensaje} =
+               Mascota.crear(nil, "MT2", "ES03", "", "CO01", "TA1", "norte", "300", "", "ana")
+
+      assert mensaje =~ "especie_otra"
+    end
+  end
+
+  describe "barrios registrados a mano" do
+    setup do
+      reiniciar()
+      :ok
+    end
+
+    test "reciben B01, B02... en orden y no se repiten" do
+      assert Codigos.filas("barrio") == []
+      assert {:ok, %{codigo: "B01"}, :nuevo} = Barrios.registrar("La Castellana", "norte")
+      assert {:ok, %{codigo: "B02"}, :nuevo} = Barrios.registrar("Granada", "centro")
+      assert {:ok, %{codigo: "B01"}, :existente} = Barrios.registrar("la castellana", "norte")
+      assert Enum.map(Codigos.filas("barrio"), & &1.codigo) == ["B01", "B02"]
+      assert {:error, _} = Barrios.registrar("Sin zona", "")
+    end
+
+    test "el barrio da la zona y uno nuevo se registra con la zona escrita" do
+      {:ok, _, _} = Barrios.registrar("Los Quindos", "sur")
+      assert Codigos.ubicacion("", "b01") == {:ok, "sur", "B01"}
+      assert Codigos.ubicacion("B01", nil) == {:ok, "sur", "B01"}
+      assert Codigos.ubicacion("centro", "Granada") == {:ok, "centro", "B02"}
+      assert {:error, mensaje} = Codigos.ubicacion("centro", "B99")
+      assert mensaje =~ "no está registrado"
+      assert {:error, mensaje} = Codigos.ubicacion("", "Barrio sin zona")
+      assert mensaje =~ "escriba también la zona"
+    end
+
+    test "persona con barrio registrado y datos opcionales" do
+      {:ok, _, _} = Barrios.registrar("Granada", "centro")
+
       assert {:ok, p} =
                Persona.crear(nil, "1094", "Andrés", "", "PE3", "34", "ana", %{
                  "tipo_doc" => "CC",
-                 "barrio" => "B02",
+                 "barrio" => "B01",
                  "direccion" => "Calle 10 # 5-20"
                })
 
       assert {p.estado, p.tipo_documento, p.zona, p.barrio} ==
-               {"localizada", "cedula", "centro", "B02"}
+               {"localizada", "cedula", "centro", "B01"}
 
-      assert Persona.to_string(p) =~ "barrio Granada (Armenia) (Calle 10 # 5-20)"
+      assert Persona.to_string(p) =~ "barrio Granada (zona centro) (Calle 10 # 5-20)"
+    end
+
+    test "los barrios se guardan en barrios.txt y vuelven al reiniciar" do
+      {:ok, _, _} = Barrios.registrar("La Patria", "sur")
+      Application.stop(:emergencias)
+      {:ok, _} = Application.ensure_all_started(:emergencias)
+      assert [%{codigo: "B01", nombre: "La Patria", zona: "sur"}] = Barrios.listar()
     end
   end
 
@@ -82,8 +150,8 @@ defmodule CodigosTest do
       {:ok, accion} = Acciones.buscar("reportar_mascota")
       [tipo, especie | _] = accion.campos
       assert tipo.opciones == ["MT1", "MT2"]
-      assert hd(especie.nombres) == "ES01 – perro"
-      assert especie.libre
+      assert especie.nombres == ["ES01 – perro", "ES02 – gato", "ES03 – otro"]
+      refute especie.libre
       assert Acciones.texto_ventana(tipo) == "Tipo de reporte|MT1 – perdida|MT2 – encontrada"
     end
 
@@ -99,11 +167,15 @@ defmodule CodigosTest do
       start_supervised!(Emergencias.Web.Fichas)
       token = Emergencias.Web.Fichas.crear("laura")
 
+      # Campos: tipo, especie, nombre, color, tamaño, zona, contacto, y los opcionales
+      # características, dirección, especie_otra, color_otro y barrio (uno nuevo).
       cuerpo =
         JSON.encode!(%{
           token: token,
           comando: "reportar_mascota",
-          valores: ["MT1", "ES02", "Misi", "CO09", "TA1", "B08", "300", "", "Calle 5"]
+          valores:
+            ["MT1", "ES02", "Misi", "CO05", "TA1", "norte", "300"] ++
+              ["", "Calle 5", "", "atigrado", "Laureles"]
         })
 
       {"200 OK", _tipo, respuesta} =
@@ -111,7 +183,9 @@ defmodule CodigosTest do
 
       assert %{"ok" => true, "texto" => texto} = JSON.decode!(respuesta)
       assert texto =~ "gato"
-      assert texto =~ "barrio Laureles"
+      assert texto =~ "atigrado"
+      assert texto =~ "barrio Laureles (zona norte)"
+      assert [%{codigo: "B01", nombre: "Laureles"}] = Barrios.listar()
     end
   end
 
@@ -135,23 +209,51 @@ defmodule CodigosTest do
       assert tabla =~ "ES01"
     end
 
+    test "registrar_barrio da B01, B02... y se usa al reportar", %{c: c} do
+      assert {:ok, "Barrio registrado: B01 – La Castellana (zona norte)"} =
+               Sesion.ejecutar(c, ~s(registrar_barrio "La Castellana" norte))
+
+      assert {:ok, "Barrio registrado: B02 – Granada (zona centro)"} =
+               Sesion.ejecutar(c, "registrar_barrio Granada centro")
+
+      assert {:ok, texto} = Sesion.ejecutar(c, ~s(registrar_barrio "la castellana" norte))
+      assert texto =~ "ya estaba registrado: B01"
+      assert {:ok, tabla} = Sesion.ejecutar(c, "codigos barrio")
+      assert tabla =~ "| B02    | Granada"
+    end
+
     test "reportar y filtrar mascotas con códigos", %{c: c} do
+      preparar(c, [~s(registrar_barrio "La Castellana" norte)])
+
       assert {:ok, texto} =
                Sesion.ejecutar(
                  c,
-                 ~s(reportar_mascota MT1 ES01 Luna CO01 TA2 B07 300 direccion="Parque")
+                 ~s(reportar_mascota MT1 ES01 Luna CO01 TA2 B01 300 direccion="Parque")
                )
 
       assert texto =~ "perro"
       assert texto =~ "barrio La Castellana"
 
-      assert {:ok, lista} = Sesion.ejecutar(c, "listar_mascotas especie=ES01 barrio=B07")
+      assert {:ok, _} =
+               Sesion.ejecutar(
+                 c,
+                 "reportar_mascota MT2 ES03 desconocido CO05 TA1 norte 301 especie_otra=conejo color_otro=atigrado"
+               )
+
+      assert {:ok, lista} = Sesion.ejecutar(c, "listar_mascotas especie=ES01 barrio=B01")
       assert lista =~ "Luna"
+      refute lista =~ "conejo"
+      assert {:ok, otras} = Sesion.ejecutar(c, "listar_mascotas especie=ES03")
+      assert otras =~ "conejo"
+      refute otras =~ "Luna"
     end
 
     test "reportar y actualizar personas con códigos", %{c: c} do
       assert {:ok, _} =
-               Sesion.ejecutar(c, ~s(reportar_persona 1094 "Andrés López" B02 PE3 tipo_doc=CC))
+               Sesion.ejecutar(
+                 c,
+                 ~s(reportar_persona 1094 "Andrés López" centro PE3 tipo_doc=CC barrio=Granada)
+               )
 
       assert {:ok, texto} = Sesion.ejecutar(c, "actualizar_persona 1094 PE5")
       assert texto =~ "en_albergue"

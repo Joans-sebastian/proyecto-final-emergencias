@@ -113,7 +113,7 @@ espacios van entre comillas, y los filtros se escriben como `clave=valor`
 | Mascotas | `reportar_mascota`, `listar_mascotas` (ciudadano); `buscar_coincidencias` (voluntario); `confirmar_coincidencia` (coordinador) |
 | Albergues | `consultar_albergue`, `listar_albergues` (ciudadano); `registrar_ingreso`, `registrar_salida`, `reporte_albergues` (voluntario); `registrar_albergue` (coordinador) |
 | Reportes | `resumen` (coordinador); `simular_falla gestor` (administrador, simula una falla) |
-| Códigos | `codigos`, `codigos <tabla>`, `codigos todas` (ciudadano): tablas para escribir los registros con códigos |
+| Códigos | `codigos`, `codigos <tabla>`, `codigos todas` (ciudadano): tablas para escribir los registros con códigos; `registrar_barrio "nombre" zona` (ciudadano): barrio nuevo con el siguiente código B01, B02... |
 
 Los roles son acumulativos: ciudadano < voluntario < coordinador < administrador.
 
@@ -122,16 +122,29 @@ Los roles son acumulativos: ciudadano < voluntario < coordinador < administrador
 Para que el registro sea más fácil de escribir y estudiar, cada lista cerrada
 tiene una tabla de códigos en `lib/emergencias/anexos/Codigos.ex`: tipo de
 reporte (`MT1`), especie (`ES01`), color (`CO01`), tamaño (`TA2`), estado de la
-persona (`PE3`), tipo de documento (`CC`), barrio con su zona y ciudad (`B07`),
-tipo de necesidad (`NT01`), prioridad (`PR1`), nivel de zona (`NV1`) y rol (`RO2`).
+persona (`PE3`), tipo de documento (`CC`), tipo de necesidad (`NT01`), prioridad
+(`PR1`), nivel de zona (`NV1`) y rol (`RO2`).
 Se puede escribir el **código o el valor**; se guarda el valor.
+
+- **Especie:** solo `ES01` perro, `ES02` gato, `ES03` otro. Con `ES03` se escribe
+  cuál en `especie_otra=`.
+- **Color:** solo `CO01` negro, `CO02` blanco, `CO03` café, `CO04` gris, `CO05`
+  otro. Con `CO05` se escribe cuál en `color_otro=`.
+- **Barrio:** no hay barrios fijos. Cada barrio se registra a mano con su nombre y
+  su zona y recibe el siguiente código: el primero `B01`, el segundo `B02` y así
+  consecutivamente (`lib/emergencias/anexos/Barrios.ex`, se guardan en
+  `datos/barrios.txt`). También se registra solo si al reportar se escribe el
+  nombre de un barrio nuevo junto con la zona.
 
 ```
 codigos                      # índice de tablas
-codigos barrio               # una tabla
-reportar_mascota MT1 ES01 Luna CO01 TA2 B07 3001112233 caracteristicas="collar rojo"
-reportar_persona 1094 "Andrés López" B04 PE3 edad=34 tipo_doc=CC direccion="Calle 10 # 5-20"
-listar_mascotas especie=ES01 barrio=B07
+codigos barrio               # barrios registrados
+registrar_barrio "La Castellana" norte     # → B01
+registrar_barrio Granada centro            # → B02
+reportar_mascota MT1 ES01 Luna CO01 TA2 B01 3001112233 caracteristicas="collar rojo"
+reportar_mascota MT2 ES03 desconocido CO05 TA1 norte 3001 especie_otra=conejo color_otro=atigrado
+reportar_persona 1094 "Andrés López" B02 PE3 edad=34 tipo_doc=CC direccion="Calle 10 # 5-20"
+listar_mascotas especie=ES01 barrio=B01
 ```
 
 `elixir codigos.exs` muestra todas las tablas y genera `CODIGOS.md` (para leer)

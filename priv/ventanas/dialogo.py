@@ -21,7 +21,7 @@ import tkinter as tk
 from tkinter import messagebox, scrolledtext, ttk
 
 FUENTE = ("Segoe UI", 10)
-RAYA = " – "  # separa el código del valor en las listas: "ES01 – perro"
+RAYA = " – "  # "ES01 – perro"
 PRUEBA = os.environ.get("EMERGENCIAS_PRUEBA") == "1"  # cierra sola la ventana (pruebas)
 
 
@@ -70,7 +70,7 @@ def formulario(titulo, campos):
         etiqueta, *opciones = (campo[1:] if oculto else campo).split("|")
         tk.Label(raiz, text=etiqueta, font=FUENTE, anchor="w").grid(row=fila, column=0, sticky="w", padx=8, pady=4)
         if opciones:
-            # Lista desplegable con los códigos; también se puede escribir otro valor.
+            # Lista con los códigos
             entrada = ttk.Combobox(raiz, values=opciones, width=43, font=FUENTE)
         else:
             entrada = tk.Entry(raiz, width=45, font=FUENTE, show="*" if oculto else "")
@@ -78,7 +78,7 @@ def formulario(titulo, campos):
         entradas.append(entrada)
 
     def aceptar(_evento=None):
-        # De "ES01 – perro" solo se envía el código "ES01".
+        # Solo se envía el código
         resultado["valores"] = [e.get().split(RAYA)[0].strip() for e in entradas]
         raiz.destroy()
 

@@ -38,14 +38,7 @@ defmodule Emergencias.Dominio.Persona do
 
   def estados, do: @estados
 
-  @doc """
-  Crea el registro de una persona validando sus datos.
-
-  El estado acepta el código de la tabla (`PE1`..`PE6`, vea
-  `Emergencias.Anexos.Codigos`) o el valor. En la zona se puede escribir un
-  código de barrio (`B04`). `extras` admite `"tipo_doc"` (`CC`, `TI`, `RC`,
-  `CE`, `PA`, `SD`), `"barrio"` y `"direccion"` (opcionales).
-  """
+  @doc "Crea el registro de una persona. Acepta códigos (PE3, B01). `extras`: tipo_doc, barrio, direccion."
   def crear(id, documento, nombre, zona, estado, edad, usuario, extras \\ %{}) do
     with {:ok, documento} <- Comun.codigo(documento, "Documento o dato de referencia"),
          {:ok, nombre} <- Comun.requerido(nombre, "El nombre"),
@@ -77,7 +70,7 @@ defmodule Emergencias.Dominio.Persona do
     end
   end
 
-  # Tipo de documento opcional: código (CC) o valor (cedula) de la tabla tipo_doc.
+  # Tipo de documento opcional (CC, TI...).
   defp validar_tipo_documento(entrada) do
     case Comun.opcional(entrada) do
       nil ->
@@ -112,8 +105,10 @@ defmodule Emergencias.Dominio.Persona do
     nombre = Util2.ingresar("Nombre: ", :texto)
     edad = Comun.opcional(Util2.ingresar("Edad (vacío si no se sabe): ", :texto))
     Util2.mostrar(elem(Codigos.formato_tabla("barrio"), 1), :mensaje)
-    barrio = Util2.ingresar("Barrio (código, vacío si no se sabe): ", :texto)
-    zona = Util2.ingresar("Zona (vacío = la del barrio): ", :texto)
+    barrio =
+      Util2.ingresar("Barrio (código B01..., o el nombre de uno nuevo; vacío si no se sabe): ", :texto)
+
+    zona = Util2.ingresar("Zona (vacío = la del barrio; obligatoria si el barrio es nuevo): ", :texto)
     direccion = Util2.ingresar("Dirección o referencia (opcional): ", :texto)
     Util2.mostrar(elem(Codigos.formato_tabla("estado_persona"), 1), :mensaje)
     estado = Util2.ingresar("Estado (código o valor): ", :texto)

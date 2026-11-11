@@ -22,7 +22,7 @@ desconectar
 
 conectar ana 1234 ciudadano norte nombre="Ana López"
 reportar_persona 1094 "Andrés López" norte localizada edad=34
-reportar_mascota perdida perro "Luna" negra mediana norte 3001112233 caracteristicas="collar rojo, oreja caída"
+reportar_mascota perdida perro "Luna" negro mediana norte 3001112233 caracteristicas="collar rojo, oreja caída"
 desconectar
 
 conectar laura 1234
@@ -31,7 +31,7 @@ desconectar
 
 conectar carlos 1234 voluntario norte nombre="Carlos Pérez"
 registrar_ingreso A01 1094
-reportar_mascota encontrada perro desconocido negra mediana norte 3004445566 caracteristicas="collar rojo, asustada"
+reportar_mascota encontrada perro desconocido negro mediana norte 3004445566 caracteristicas="collar rojo, asustada"
 buscar_coincidencias
 desconectar
 

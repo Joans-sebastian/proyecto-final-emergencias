@@ -1,44 +1,21 @@
 defmodule Emergencias.Anexos.Codigos do
   @moduledoc """
-  **Base de datos de códigos** del sistema: tablas `código → valor` para
-  escribir los registros de forma corta y sin errores de ortografía.
+  Tablas de códigos para registrar más rápido: se puede escribir `ES01` o `perro`.
+  Se guarda siempre el valor.
 
-  En lugar de escribir `perro` se puede escribir `ES01`; en lugar de
-  `localizada`, `PE3`. Los dos caminos funcionan: si lo escrito es un código
-  se traduce a su valor y, si no, se deja igual para que la entidad lo valide
-  como siempre. Los registros guardan el **valor** (no el código), así los
-  datos anteriores siguen sirviendo.
-
-  ## Pensamiento computacional
-
-  - **Abstracción:** cada tabla es solo `{código, valor, descripción}`; no
-    importa si es una especie, un color o un estado.
-  - **Descomposición:** una función para cada tarea pequeña (buscar, traducir,
-    ubicar, dibujar la tabla, exportar).
-  - **Reconocimiento de patrones:** la misma función `traducir/2` sirve para
-    todas las tablas y la misma `formato_tabla/1` dibuja cualquiera.
-  - **Algoritmos:** `buscar/2` y `ancho_columnas/2` son **recursivas**.
-
-  ## Uso
+  Especie y color solo aceptan sus códigos. Con "otro" (`ES03`, `CO05`) se
+  escribe cuál es en `especie_otra=` o `color_otro=`. Los barrios no están
+  aquí: se registran a mano (`Emergencias.Anexos.Barrios`) y reciben B01, B02...
 
       iex> Emergencias.Anexos.Codigos.traducir("especie", "es01")
       "perro"
-      iex> Emergencias.Anexos.Codigos.traducir("especie", "gato")
-      "gato"
-      iex> Emergencias.Anexos.Codigos.ubicacion("", "B01")
-      {:ok, "centro", "B01"}
-
-  En la consola: `codigos` (lista de tablas) o `codigos especie` (una tabla).
-  Para estudiarlas: `elixir codigos.exs` genera `CODIGOS.md` y `datos/codigos.csv`.
   """
 
+  alias Emergencias.Anexos.Barrios
   alias Emergencias.Dominio.Comun
 
-  # ---------------------------------------------------------------------------
-  # Datos: cada tabla es {nombre, título, dónde se usa, filas}
-  # Cada fila es {código, valor, descripción}. En barrios, la descripción es
-  # la zona a la que pertenece y se agrega la ciudad.
-  # ---------------------------------------------------------------------------
+  # Cada tabla: {nombre, título, dónde se usa, filas}. Fila: {código, valor, descripción}.
+  # La tabla de barrios se arma con los barrios registrados (ver tablas/0).
 
   @tablas [
     {"tipo_reporte", "Tipo de reporte de mascota", "reportar_mascota (1.er dato)",
@@ -48,27 +25,17 @@ defmodule Emergencias.Anexos.Codigos do
      ]},
     {"especie", "Especie de la mascota", "reportar_mascota (2.º dato) y filtro especie=",
      [
-       {"ES01", "perro", "Canino"},
-       {"ES02", "gato", "Felino"},
-       {"ES03", "ave", "Loro, perico, canario, gallina"},
-       {"ES04", "conejo", "Conejo"},
-       {"ES05", "roedor", "Hámster, cuy, ratón"},
-       {"ES06", "tortuga", "Tortuga"},
-       {"ES07", "caballo", "Caballo, burro, mula"},
-       {"ES08", "otra", "Otra especie"}
+       {"ES01", "perro", "Perro"},
+       {"ES02", "gato", "Gato"},
+       {"ES03", "otro", "Otra especie: escriba cuál en especie_otra="}
      ]},
     {"color", "Color de la mascota", "reportar_mascota (4.º dato)",
      [
-       {"CO01", "negro", "Pelaje negro"},
-       {"CO02", "blanco", "Pelaje blanco"},
-       {"CO03", "cafe", "Café o marrón"},
+       {"CO01", "negro", "Negro"},
+       {"CO02", "blanco", "Blanco"},
+       {"CO03", "cafe", "Café"},
        {"CO04", "gris", "Gris"},
-       {"CO05", "amarillo", "Amarillo, dorado o crema"},
-       {"CO06", "naranja", "Naranja o rojizo"},
-       {"CO07", "blanco negro", "Manchas blancas y negras"},
-       {"CO08", "blanco cafe", "Manchas blancas y cafés"},
-       {"CO09", "atigrado", "Rayas tipo tigre"},
-       {"CO10", "tricolor", "Tres colores"}
+       {"CO05", "otro", "Otro color: escriba cuál en color_otro="}
      ]},
     {"tamano", "Tamaño de la mascota", "reportar_mascota (5.º dato)",
      [
@@ -94,21 +61,6 @@ defmodule Emergencias.Anexos.Codigos do
        {"CE", "cedula_extranjeria", "Cédula de extranjería"},
        {"PA", "pasaporte", "Pasaporte"},
        {"SD", "sin_documento", "No tiene o no se conoce (use un dato de referencia)"}
-     ]},
-    {"barrio", "Barrios y su zona", "reportar_mascota / reportar_persona [barrio=..]",
-     [
-       {"B01", "Centro", "centro", "Armenia"},
-       {"B02", "Granada", "centro", "Armenia"},
-       {"B03", "La Clarita", "centro", "Armenia"},
-       {"B04", "Los Quindos", "sur", "Armenia"},
-       {"B05", "La Patria", "sur", "Armenia"},
-       {"B06", "Puerto Espejo", "sur", "Armenia"},
-       {"B07", "La Castellana", "norte", "Armenia"},
-       {"B08", "Laureles", "norte", "Armenia"},
-       {"B09", "El Bosque", "este", "Armenia"},
-       {"B10", "Galán", "oeste", "Armenia"},
-       {"B11", "Centro Calarcá", "este", "Calarcá"},
-       {"B12", "Centro Circasia", "norte", "Circasia"}
      ]},
     {"tipo_necesidad", "Tipo de necesidad", "registrar_necesidad (1.er dato) y filtro tipo=",
      [
@@ -146,31 +98,77 @@ defmodule Emergencias.Anexos.Codigos do
      ]}
   ]
 
-  @nombres Enum.map(@tablas, fn {nombre, _t, _u, _f} -> nombre end)
+  # Campo opcional donde se escribe el valor cuando se elige "otro".
+  @campo_otro %{"especie" => "especie_otra", "color" => "color_otro"}
+  @texto_otro %{"especie" => "otra especie", "color" => "otro color"}
 
-  # ---------------------------------------------------------------------------
-  # Consultas
-  # ---------------------------------------------------------------------------
+  # Todas las tablas: las fijas y la de barrios registrados (cambia al registrar uno).
+  defp tablas do
+    barrios =
+      Enum.map(Barrios.listar(), fn b -> {b.codigo, b.nombre, b.zona, :barrio} end)
+
+    @tablas ++
+      [
+        {"barrio", "Barrios registrados y su zona",
+         "registrar_barrio, reportar_mascota / reportar_persona [barrio=..]", barrios}
+      ]
+  end
 
   @doc "Nombres de todas las tablas."
-  def nombres, do: @nombres
+  def nombres, do: Enum.map(tablas(), fn {nombre, _t, _u, _f} -> nombre end)
 
-  @doc "Filas de una tabla como mapas `%{codigo, valor, descripcion}` (barrio: `zona` y `ciudad`)."
+  @doc "Filas de una tabla como mapas."
   def filas(nombre) do
-    case List.keyfind(@tablas, nombre, 0) do
+    case List.keyfind(tablas(), nombre, 0) do
       {_n, _t, _u, filas} -> Enum.map(filas, &fila_a_mapa/1)
       nil -> []
     end
   end
 
-  defp fila_a_mapa({codigo, valor, zona, ciudad}),
-    do: %{codigo: codigo, valor: valor, descripcion: "zona #{zona}", zona: zona, ciudad: ciudad}
+  defp fila_a_mapa({codigo, nombre, zona, :barrio}),
+    do: %{codigo: codigo, valor: nombre, descripcion: "zona #{zona}", zona: zona}
 
   defp fila_a_mapa({codigo, valor, descripcion}),
     do: %{codigo: codigo, valor: valor, descripcion: descripcion}
 
   @doc """
-  **Recursiva.** Busca un código (sin importar mayúsculas) en una lista de filas.
+  Especie y color: solo se aceptan los códigos de la tabla (o su valor). Si se
+  elige "otro" (`ES03` o `CO05`), se guarda lo que se escribió en `otro`.
+
+      iex> Emergencias.Anexos.Codigos.con_otro("especie", "ES01", nil)
+      {:ok, "perro"}
+      iex> Emergencias.Anexos.Codigos.con_otro("especie", "es03", "Iguana")
+      {:ok, "iguana"}
+      iex> Emergencias.Anexos.Codigos.con_otro("color", "CO05", "")
+      {:error, "Eligió CO05 (otro color): escriba cuál en color_otro=.."}
+  """
+  def con_otro(tabla, entrada, otro) do
+    valor = Comun.normalizar(traducir(tabla, entrada))
+    validos = Enum.map(filas(tabla), & &1.valor)
+
+    cond do
+      valor == "otro" ->
+        case Comun.opcional(otro) do
+          nil ->
+            codigo = Enum.find(filas(tabla), &(&1.valor == "otro")).codigo
+
+            {:error,
+             "Eligió #{codigo} (#{@texto_otro[tabla]}): escriba cuál en #{@campo_otro[tabla]}=.."}
+
+          texto ->
+            {:ok, Comun.normalizar(texto)}
+        end
+
+      valor in validos ->
+        {:ok, valor}
+
+      true ->
+        {:error, "#{String.capitalize(tabla)} no válida: '#{entrada}'. Use: #{opciones(tabla)}"}
+    end
+  end
+
+  @doc """
+  Recursiva. Busca un código en las filas (sin importar mayúsculas).
 
       iex> Emergencias.Anexos.Codigos.buscar(Emergencias.Anexos.Codigos.filas("tamano"), "ta2").valor
       "mediana"
@@ -181,10 +179,7 @@ defmodule Emergencias.Anexos.Codigos do
     if fila.codigo == mayusculas(codigo), do: fila, else: buscar(resto, codigo)
   end
 
-  @doc """
-  Si `entrada` es un código de la tabla retorna su valor; si no, la deja igual
-  (así se puede escribir el código **o** el valor).
-  """
+  @doc "Si es un código retorna su valor; si no, lo deja igual."
   def traducir(_tabla, nil), do: nil
 
   def traducir(tabla, entrada) do
@@ -195,67 +190,83 @@ defmodule Emergencias.Anexos.Codigos do
   end
 
   @doc """
-  Barrio opcional: vacío → `{:ok, nil}`; código válido → `{:ok, código}`.
+  Valida el barrio (opcional). Acepta un código registrado (`B01`) o el nombre
+  de un barrio nuevo: si es nuevo, lo registra con `zona` y le da el siguiente
+  código (B01, B02...).
 
-      iex> Emergencias.Anexos.Codigos.barrio("b07")
-      {:ok, "B07"}
+      iex> Emergencias.Anexos.Codigos.barrio(nil, "centro")
+      {:ok, nil}
   """
-  def barrio(entrada) do
+  def barrio(entrada, zona) do
     case Comun.opcional(entrada) do
       nil ->
         {:ok, nil}
 
       texto ->
-        case buscar(filas("barrio"), texto) do
-          nil ->
-            {:error,
-             "Barrio inválido '#{texto}'. Códigos: #{Enum.map_join(filas("barrio"), ", ", & &1.codigo)} " <>
-               "(escriba: codigos barrio)"}
-
-          fila ->
+        cond do
+          fila = buscar(filas("barrio"), texto) ->
             {:ok, fila.codigo}
+
+          Regex.match?(~r/^B\d+$/i, texto) ->
+            {:error,
+             "El barrio #{String.upcase(texto)} no está registrado. Registrados: #{registrados()} " <>
+               "(para uno nuevo: registrar_barrio \"nombre\" zona)"}
+
+          Comun.opcional(zona) == nil ->
+            {:error, "Barrio nuevo '#{texto}': escriba también la zona para registrarlo"}
+
+          true ->
+            with {:ok, b, _} <- Barrios.registrar(texto, zona), do: {:ok, b.codigo}
         end
     end
   end
 
+  defp registrados do
+    case filas("barrio") do
+      [] -> "ninguno"
+      lista -> Enum.map_join(lista, ", ", & &1.codigo)
+    end
+  end
+
   @doc """
-  Decide la zona y el barrio de un registro:
+  Retorna la zona y el barrio. Si hay barrio y no zona, usa la zona del barrio.
+  En la zona también se puede escribir el código de un barrio (`B01`).
 
-  - Si en la zona se escribió un código de barrio (`B04`), se usa la zona de ese barrio.
-  - Si la zona está vacía y hay barrio, se toma la zona del barrio.
-  - Si no, la zona queda como se escribió (puede ser un sector o un punto).
-
-      iex> Emergencias.Anexos.Codigos.ubicacion("B04", nil)
-      {:ok, "sur", "B04"}
-      iex> Emergencias.Anexos.Codigos.ubicacion("sector3", "B02")
-      {:ok, "sector3", "B02"}
+      iex> Emergencias.Anexos.Codigos.ubicacion("sector3", nil)
+      {:ok, "sector3", nil}
   """
   def ubicacion(zona, barrio_entrada) do
     zona = Comun.opcional(zona)
     barrio_en_zona = zona && buscar(filas("barrio"), zona)
 
-    with {:ok, barrio} <- barrio(barrio_entrada) do
-      cond do
-        barrio_en_zona -> {:ok, barrio_en_zona.zona, barrio || barrio_en_zona.codigo}
-        zona -> {:ok, zona, barrio}
-        barrio -> {:ok, buscar(filas("barrio"), barrio).zona, barrio}
-        true -> {:ok, "", nil}
-      end
+    cond do
+      barrio_en_zona ->
+        with {:ok, barrio} <- barrio(barrio_entrada, barrio_en_zona.zona),
+             do: {:ok, barrio_en_zona.zona, barrio || barrio_en_zona.codigo}
+
+      true ->
+        with {:ok, barrio} <- barrio(barrio_entrada, zona) do
+          cond do
+            zona -> {:ok, zona, barrio}
+            barrio -> {:ok, buscar(filas("barrio"), barrio).zona, barrio}
+            true -> {:ok, "", nil}
+          end
+        end
     end
   end
 
-  @doc "Nombre legible de un barrio: `B02` → `Granada (Armenia)`."
+  @doc "B01 -> La Castellana (zona norte)."
   def nombre_barrio(nil), do: nil
 
   def nombre_barrio(codigo) do
     case buscar(filas("barrio"), codigo) do
       nil -> codigo
-      fila -> "#{fila.valor} (#{fila.ciudad})"
+      fila -> "#{fila.valor} (zona #{fila.zona})"
     end
   end
 
   @doc """
-  Opciones cortas para las preguntas de `ingresar`:
+  Códigos para las preguntas de `ingresar`.
 
       iex> Emergencias.Anexos.Codigos.opciones("tamano")
       "TA1=pequena, TA2=mediana, TA3=grande"
@@ -263,30 +274,25 @@ defmodule Emergencias.Anexos.Codigos do
   def opciones(tabla), do: Enum.map_join(filas(tabla), ", ", &"#{&1.codigo}=#{&1.valor}")
 
   @doc """
-  Opciones para las listas de la web y de las ventanas: `{código, etiqueta}`.
-  La etiqueta lleva el código, una raya `–` y el valor.
+  Opciones de las listas de la web y las ventanas.
 
       iex> Emergencias.Anexos.Codigos.etiquetas("tamano") |> hd()
       {"TA1", "TA1 – pequena"}
-      iex> Emergencias.Anexos.Codigos.etiquetas("barrio") |> hd()
-      {"B01", "B01 – Centro (zona centro, Armenia)"}
   """
   def etiquetas("barrio"),
     do:
       Enum.map(filas("barrio"), fn f ->
-        {f.codigo, "#{f.codigo} – #{f.valor} (zona #{f.zona}, #{f.ciudad})"}
+        {f.codigo, "#{f.codigo} – #{f.valor} (zona #{f.zona})"}
       end)
 
   def etiquetas(tabla), do: Enum.map(filas(tabla), &{&1.codigo, "#{&1.codigo} – #{&1.valor}"})
 
-  # ---------------------------------------------------------------------------
-  # Presentación (tablas de texto)
-  # ---------------------------------------------------------------------------
+  # --- Mostrar tablas ---
 
-  @doc "Índice de tablas para el comando `codigos`."
+  @doc "Lista de tablas (comando `codigos`)."
   def indice do
     lineas =
-      Enum.map(@tablas, fn {nombre, titulo, uso, filas} ->
+      Enum.map(tablas(), fn {nombre, titulo, uso, filas} ->
         "  #{String.pad_trailing(nombre, 15)} #{String.pad_trailing(titulo, 34)} " <>
           "#{length(filas)} códigos | se usa en: #{uso}"
       end)
@@ -295,18 +301,20 @@ defmodule Emergencias.Anexos.Codigos do
       ["BASE DE DATOS DE CÓDIGOS (escriba: codigos <tabla>, o codigos todas)" | lineas] ++
         [
           "",
-          "Puede escribir el código o el valor. Ejemplo:",
-          "  reportar_mascota MT1 ES01 Luna CO01 TA2 B07 3001112233 caracteristicas=\"collar rojo\""
+          "Puede escribir el código o el valor. Ejemplos:",
+          "  registrar_barrio \"La Castellana\" norte      (recibe B01, el siguiente B02...)",
+          "  reportar_mascota MT1 ES01 Luna CO01 TA2 B01 3001112233 caracteristicas=\"collar rojo\"",
+          "  reportar_mascota MT2 ES03 desconocido CO05 TA1 norte 3001 especie_otra=conejo color_otro=atigrado"
         ],
       "\n"
     )
   end
 
-  @doc "Una tabla dibujada con bordes, lista para la consola."
+  @doc "Dibuja una tabla con bordes."
   def formato_tabla(nombre) do
-    case List.keyfind(@tablas, nombre, 0) do
+    case List.keyfind(tablas(), nombre, 0) do
       nil ->
-        {:error, "Tabla desconocida '#{nombre}'. Tablas: #{Enum.join(@nombres, ", ")}"}
+        {:error, "Tabla desconocida '#{nombre}'. Tablas: #{Enum.join(nombres(), ", ")}"}
 
       {_n, titulo, uso, _f} ->
         {encabezado, filas} = columnas(nombre)
@@ -316,13 +324,13 @@ defmodule Emergencias.Anexos.Codigos do
 
   @doc "Todas las tablas, una tras otra."
   def formato_todas do
-    Enum.map_join(@nombres, "\n\n", fn nombre -> elem(formato_tabla(nombre), 1) end)
+    Enum.map_join(nombres(), "\n\n", fn nombre -> elem(formato_tabla(nombre), 1) end)
   end
 
   defp columnas("barrio"),
     do:
-      {["Código", "Barrio", "Zona", "Ciudad"],
-       Enum.map(filas("barrio"), &[&1.codigo, &1.valor, &1.zona, &1.ciudad])}
+      {["Código", "Barrio", "Zona"],
+       Enum.map(filas("barrio"), &[&1.codigo, &1.valor, &1.zona])}
 
   defp columnas(nombre),
     do:
@@ -343,7 +351,7 @@ defmodule Emergencias.Anexos.Codigos do
     Enum.join([borde, linea.(encabezado), borde] ++ Enum.map(filas, linea) ++ [borde], "\n")
   end
 
-  @doc "**Recursiva.** Ancho máximo de cada columna recorriendo las filas."
+  @doc "Recursiva. Calcula el ancho de cada columna."
   def ancho_columnas([], anchos), do: anchos
 
   def ancho_columnas([fila | resto], anchos) do
@@ -351,14 +359,12 @@ defmodule Emergencias.Anexos.Codigos do
     ancho_columnas(resto, nuevos)
   end
 
-  # ---------------------------------------------------------------------------
-  # Exportar (para estudiar las tablas fuera del programa)
-  # ---------------------------------------------------------------------------
+  # --- Exportar ---
 
-  @doc "Todas las tablas en Markdown (para `CODIGOS.md`)."
+  @doc "Tablas en Markdown (CODIGOS.md)."
   def markdown do
     secciones =
-      Enum.map(@tablas, fn {nombre, titulo, uso, _f} ->
+      Enum.map(tablas(), fn {nombre, titulo, uso, _f} ->
         {encabezado, filas} = columnas(nombre)
 
         tabla =
@@ -380,8 +386,10 @@ defmodule Emergencias.Anexos.Codigos do
           "En cada registro puede escribir el **código** o el **valor**; se guarda el valor.\n\n" <>
           "Ejemplos:\n\n" <>
           "```\n" <>
-          "reportar_mascota MT1 ES01 Luna CO01 TA2 B07 3001112233 caracteristicas=\"collar rojo\"\n" <>
-          "reportar_persona 1094 \"Andrés López\" B04 PE3 edad=34 tipo_doc=CC\n" <>
+          "registrar_barrio \"La Castellana\" norte\n" <>
+          "reportar_mascota MT1 ES01 Luna CO01 TA2 B01 3001112233 caracteristicas=\"collar rojo\"\n" <>
+          "reportar_mascota MT2 ES03 desconocido CO05 TA1 norte 3001 especie_otra=conejo color_otro=atigrado\n" <>
+          "reportar_persona 1094 \"Andrés López\" B01 PE3 edad=34 tipo_doc=CC\n" <>
           "registrar_necesidad NT01 30 PR1 centro \"Punto de atención sector 3\"\n" <>
           "listar_mascotas especie=ES01\n" <>
           "```"
@@ -391,15 +399,12 @@ defmodule Emergencias.Anexos.Codigos do
     ) <> "\n"
   end
 
-  @doc "Todas las tablas en CSV (`tabla;codigo;valor;descripcion`), para abrir en Excel."
+  @doc "Tablas en CSV para Excel."
   def csv do
     lineas =
-      Enum.flat_map(@nombres, fn nombre ->
+      Enum.flat_map(nombres(), fn nombre ->
         Enum.map(filas(nombre), fn f ->
-          detalle =
-            if nombre == "barrio", do: "#{f.descripcion} - #{f.ciudad}", else: f.descripcion
-
-          Enum.join([nombre, f.codigo, f.valor, detalle], ";")
+          Enum.join([nombre, f.codigo, f.valor, f.descripcion], ";")
         end)
       end)
 

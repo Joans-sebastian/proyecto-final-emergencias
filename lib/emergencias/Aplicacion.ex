@@ -41,7 +41,9 @@ defmodule Emergencias.Aplicacion do
       # (ver lib/emergencias/anexos/LEEME.md).
       # Anexo "Aplicaciones distribuidas": proceso registrado :servicio_emergencias
       # que atiende a los clientes de otros nodos con send/receive.
-      Emergencias.Anexos.ServicioRemoto
+      Emergencias.Anexos.ServicioRemoto,
+      # Anexo "Barrios": los barrios se registran a mano y reciben B01, B02...
+      Emergencias.Anexos.Barrios
     ]
 
     opciones = [

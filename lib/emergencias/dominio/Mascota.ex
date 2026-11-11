@@ -56,12 +56,10 @@ defmodule Emergencias.Dominio.Mascota do
   def umbral, do: @umbral
 
   @doc """
-  Crea un reporte activo validando sus datos.
-
-  Tipo, especie, color y tamaño aceptan el código de la tabla
-  (`MT1`, `ES01`, `CO01`, `TA2`; vea `Emergencias.Anexos.Codigos`) o el valor.
-  En la zona se puede escribir un código de barrio (`B07`). `extras` admite
-  `"barrio"` y `"direccion"` (opcionales).
+  Crea un reporte activo. Acepta códigos (MT1, ES01, CO01, TA2, B01).
+  Especie: ES01 perro, ES02 gato, ES03 otro. Color: CO01 negro, CO02 blanco,
+  CO03 café, CO04 gris, CO05 otro. Con "otro" se escribe cuál en `extras`.
+  `extras`: especie_otra, color_otro, barrio, direccion.
   """
   def crear(
         id,
@@ -77,8 +75,10 @@ defmodule Emergencias.Dominio.Mascota do
         extras \\ %{}
       ) do
     with {:ok, tipo} <- validar_tipo(Codigos.traducir("tipo_reporte", tipo)),
-         {:ok, especie} <- Comun.requerido(Codigos.traducir("especie", especie), "La especie"),
-         {:ok, color} <- Comun.requerido(Codigos.traducir("color", color), "El color"),
+         {:ok, especie} <- Comun.requerido(especie, "La especie"),
+         {:ok, especie} <- Codigos.con_otro("especie", especie, extras["especie_otra"]),
+         {:ok, color} <- Comun.requerido(color, "El color"),
+         {:ok, color} <- Codigos.con_otro("color", color, extras["color_otro"]),
          {:ok, tamano} <- Comun.en_lista(Codigos.traducir("tamano", tamano), @tamanos, "Tamaño"),
          {:ok, zona, barrio} <- Codigos.ubicacion(zona, extras["barrio"]),
          {:ok, zona} <- Comun.codigo(zona, "Zona"),
@@ -123,20 +123,34 @@ defmodule Emergencias.Dominio.Mascota do
 
     tipo = Util2.ingresar("Tipo de reporte (#{Codigos.opciones("tipo_reporte")}): ", :texto)
     especie = Util2.ingresar("Especie (#{Codigos.opciones("especie")}): ", :texto)
+    especie_otra = preguntar_otro("especie", especie, "¿Cuál especie? ")
     nombre = Util2.ingresar("Nombre (vacío si no se conoce): ", :texto)
     color = Util2.ingresar("Color (#{Codigos.opciones("color")}): ", :texto)
+    color_otro = preguntar_otro("color", color, "¿Cuál color? ")
     tamano = Util2.ingresar("Tamaño (#{Codigos.opciones("tamano")}): ", :texto)
     Util2.mostrar(elem(Codigos.formato_tabla("barrio"), 1), :mensaje)
-    barrio = Util2.ingresar("Barrio (código, vacío si no se sabe): ", :texto)
-    zona = Util2.ingresar("Zona (vacío = la del barrio): ", :texto)
+
+    barrio =
+      Util2.ingresar("Barrio (código B01..., o el nombre de uno nuevo; vacío si no se sabe): ", :texto)
+
+    zona = Util2.ingresar("Zona (vacío = la del barrio; obligatoria si el barrio es nuevo): ", :texto)
     direccion = Util2.ingresar("Dirección o referencia (opcional): ", :texto)
     contacto = Util2.ingresar("Contacto: ", :texto)
     caracteristicas = Util2.ingresar("Características: ", :texto)
 
     crear(nil, tipo, especie, nombre, color, tamano, zona, contacto, caracteristicas, usuario, %{
+      "especie_otra" => especie_otra,
+      "color_otro" => color_otro,
       "barrio" => barrio,
       "direccion" => direccion
     })
+  end
+
+  # Si se eligió "otro" (ES03 o CO05), pregunta cuál.
+  defp preguntar_otro(tabla, entrada, pregunta) do
+    if Comun.normalizar(Codigos.traducir(tabla, entrada)) == "otro",
+      do: Util2.ingresar(pregunta, :texto),
+      else: nil
   end
 
   @doc "Representación del reporte como texto."
@@ -217,7 +231,11 @@ defmodule Emergencias.Dominio.Mascota do
   def cumple?(%__MODULE__{} = mascota, filtros) do
     Enum.all?(filtros, fn
       {"especie", valor} ->
-        mascota.especie == Comun.normalizar(Codigos.traducir("especie", valor))
+        case Comun.normalizar(Codigos.traducir("especie", valor)) do
+          # ES03 = otro: todas las que no son perro ni gato
+          "otro" -> mascota.especie not in ["perro", "gato"]
+          especie -> mascota.especie == especie
+        end
 
       {"zona", valor} ->
         mascota.zona == valor

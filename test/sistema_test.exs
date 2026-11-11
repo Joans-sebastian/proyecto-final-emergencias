@@ -106,8 +106,8 @@ defmodule SistemaTest do
       coordinador: c
     } do
       preparar(c, [
-        "reportar_mascota perdida perro Luna negra mediana norte 300",
-        "reportar_mascota encontrada perro desconocido negra mediana norte 301"
+        "reportar_mascota perdida perro Luna negro mediana norte 300",
+        "reportar_mascota encontrada perro desconocido negro mediana norte 301"
       ])
 
       otro = sesion("pedro", "coordinador")
