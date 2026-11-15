@@ -208,97 +208,176 @@ test/dominio_test.exs  sistema_test.exs  remoto_test.exs  codigos_test.exs   Pru
 
 ```mermaid
 flowchart TB
-  subgraph Interfaz
-    CLI[Interfaz.Consola<br/>consola / cliente] --> Analizador[Interfaz.Analizador]
-    CLI --> Formato[Interfaz.Formato]
-    GRA[Interfaz.Grafica<br/>ventanas emergentes] --> VEN[Interfaz.Ventanas<br/>Python/tkinter]
-    WEB[Web.Servidor + Web.Rutas<br/>página web]
+  subgraph Entrada["Scripts de arranque"]
+    direction LR
+    SC[consola.exs] ~~~ SV[ventanas.exs] ~~~ SW[web.exs] ~~~ SD[demostracion.exs] ~~~ SS[servidor.exs / cliente.exs] ~~~ SR[cliente_remoto.exs]
   end
-  CLI & GRA & WEB -- conectar / desconectar --> Sesiones
-  CLI & GRA & WEB -- comandos --> Sesion
-  subgraph Aplicación
-    Sesiones[Sesiones] --> Sesion[Sesion<br/>GenServer por usuario]
-    Sesion --> Comandos
-    Comandos --> Permisos
-    Comandos --> Servicios
+  Entrada --> MAIN[Emergencias.main/1<br/>decide QUÉ se ejecuta]
+  subgraph Interfaces["Interfaces de usuario"]
+    CLI[Interfaz.Consola<br/>comandos y modo guiado]
+    GUI[Interfaz.Grafica + Ventanas<br/>ventanas tkinter]
+    WEB[Web.Servidor + Rutas + Fichas<br/>página web]
+    REM[Remoto.ClienteRemoto + Nodo<br/>otro nodo, send/receive]
   end
-  subgraph Estado[Estado: GenServers]
-    GU[GestorUsuarios] & GZ[GestorZonas] & GR[GestorRecursos] & GN[GestorNecesidades]
-    GP[GestorPersonas] & GM[GestorMensajes] & GMa[GestorMascotas] & GA[GestorAlbergues] & B[Bitacora]
+  MAIN --> Interfaces
+  REM -.->|mensajes entre nodos| SRV[Remoto.ServicioRemoto<br/>:servicio_emergencias]
+  CLI & GUI & WEB --> SES[Sesiones / Sesion<br/>un proceso por usuario]
+  SRV --> SES
+  SES --> CMD[Comandos<br/>interpreta cada línea]
+  CMD --> PER[Permisos<br/>roles acumulativos]
+  CMD --> SER[Servicios<br/>reportes y consultas]
+  subgraph Estado["Estado: GenServers (dueños de los datos)"]
+    direction LR
+    GU[GestorUsuarios] ~~~ GZ[GestorZonas] ~~~ GR[GestorRecursos]
+    GN[GestorNecesidades] ~~~ GP[GestorPersonas] ~~~ GM[GestorMensajes]
+    GMa[GestorMascotas] ~~~ GA[GestorAlbergues] ~~~ BA[Barrios] ~~~ BI[Bitacora]
   end
-  Comandos --> Estado
-  Servicios --> Estado
-  GN -- retirar / devolver --> GR
-  Estado --> Dominio[Dominio: structs y funciones puras]
-  Estado --> Archivo[Persistencia.Archivo<br/>datos/*.txt]
+  CMD --> Estado
+  SER --> Estado
+  GN -- retirar / devolver inventario --> GR
+  Estado --> DOM[Dominio: structs y reglas puras<br/>Usuario · Zona · Necesidad · Recurso · Persona<br/>Mensaje · Mascota · Albergue · Codigos · Comun]
+  Estado --> PERS[Persistente + Persistencia.Archivo<br/>datos/*.txt, texto plano]
+  DOM --> UTIL[Util / Util2<br/>módulos del curso]
+  CLI --> UTIL
 ```
 
 ## Modelo de datos
 
 ```mermaid
 classDiagram
-  class Usuario { username; hash; sal; nombre; tipo; zona }
-  class Zona { codigo; nombre; tipo: zona|sector|punto; nivel; personas; hijos: [Zona] }
-  class Necesidad { id N001; tipo; cantidad; asignada; prioridad; zona; lugar; estado; asignaciones; historial }
-  class Recurso { codigo; nombre; categoria; unidad; zona; existencias: %{ubicacion => cantidad}; movimientos }
-  class Albergue { codigo; nombre; zona; capacidad; ocupantes: MapSet; historial }
-  class Persona { id P001; documento; nombre; edad; zona; estado; albergue; historial }
-  class Mensaje { id M001; documento; remitente; contenido; fecha; estado }
-  class Mascota { id MA001; tipo; especie; nombre; color; tamano; zona; contacto; estado; coincidencia }
-  Zona "1" o-- "*" Zona : hijos
+  direction LR
+  class Usuario {
+    username
+    hash · sal
+    nombre
+    tipo : ciudadano | voluntario | coordinador | administrador
+    zona
+  }
+  class Zona {
+    codigo
+    nombre
+    tipo : zona | sector | punto
+    nivel : critico | alto | medio | bajo
+    personas
+    padre : Zona (vacío si es zona principal)
+    hijos : sectores y puntos (Zona)
+  }
+  class Barrio {
+    codigo : B01, B02...
+    nombre
+    zona
+  }
+  class Necesidad {
+    id : N001...
+    tipo · cantidad · asignada
+    prioridad : critica | alta | media | baja
+    zona · lugar
+    estado · responsable
+    asignaciones · historial
+  }
+  class Recurso {
+    codigo : R001 a R003
+    nombre · categoria · unidad
+    zona
+    existencias : ubicación → cantidad
+    movimientos
+  }
+  class Albergue {
+    codigo : A01 a A03
+    nombre · zona
+    capacidad
+    ocupantes : MapSet de documentos
+    historial
+  }
+  class Persona {
+    id : P001...
+    documento · tipo_documento
+    nombre · edad
+    zona · barrio · direccion
+    estado : sin_informacion ... reunificada
+    albergue · historial
+  }
+  class Mensaje {
+    id
+    documento · destinatario · remitente
+    contenido · fecha
+    estado · entregado_en
+  }
+  class Mascota {
+    id
+    tipo : perdida | encontrada
+    especie · nombre · color · tamano
+    zona · barrio · direccion · contacto
+    estado
+    coincidencia : id de otra Mascota
+  }
+  Barrio "*" --> "1" Zona
+  Usuario "*" --> "1" Zona : zona principal
   Necesidad "*" --> "1" Zona
   Necesidad "*" --> "0..1" Albergue : lugar
   Necesidad "*" --> "*" Recurso : asignaciones
   Recurso "*" --> "1" Zona
   Albergue "*" --> "1" Zona
   Albergue "1" --> "*" Persona : ocupantes
-  Persona "1" <-- "*" Mensaje : documento
-  Mascota "0..1" -- "0..1" Mascota : coincidencia
+  Persona "*" --> "0..1" Barrio
+  Mensaje "*" --> "1" Persona : documento
+  Mascota "*" --> "0..1" Barrio
 ```
 
 ## Diagrama de secuencia: dos asignaciones simultáneas sobre el mismo recurso
 
 ```mermaid
 sequenceDiagram
-  participant L as Sesión laura
-  participant P as Sesión pedro
+  autonumber
+  actor Laura as Laura (coordinadora)
+  actor Pedro as Pedro (coordinador)
+  participant L as Sesion laura
+  participant P as Sesion pedro
   participant N as GestorNecesidades
   participant R as GestorRecursos
-  L->>N: asignar(N001, agua, 30)
-  P->>N: asignar(N002, agua, 25)
-  Note over N: los mensajes se atienden uno a la vez
+  participant A as datos/*.txt
+  Laura->>L: asignar_recurso N001 agua 30
+  Pedro->>P: asignar_recurso N002 agua 25
+  L->>N: GenServer.call asignar(N001, agua, 30)
+  P->>N: GenServer.call asignar(N002, agua, 25)
+  Note over N: el buzón atiende un mensaje a la vez:<br/>el de Pedro espera su turno
   N->>R: retirar(agua, 30)
-  R-->>N: {:ok, 30 de R001}  (quedan 20)
-  N-->>L: asignada 30/30
+  R->>A: guarda el inventario (quedan 20)
+  R-->>N: {:ok, 30 de R001 en centro_acopio}
+  N->>A: guarda la necesidad (asignada 30/30)
+  N-->>L: {:ok, N001 asignada}
+  L-->>Laura: Asignado a N001: 30 de R001
   N->>R: retirar(agua, 25)
-  R-->>N: {:error, hay 20, se pidieron 25}
-  N-->>P: ERROR: no se asignó nada
+  R-->>N: {:error, hay 20 y se pidieron 25}
+  N-->>P: {:error, no se asignó nada}
+  P-->>Pedro: ERROR: Inventario insuficiente
 ```
 
 ## Diagrama de procesos y supervisión (árbol OTP)
 
 ```mermaid
-flowchart TB
-  S[Emergencias.Supervisor<br/>one_for_one] --> B[Bitacora]
-  S --> GU[GestorUsuarios]
-  S --> GZ[GestorZonas]
-  S --> GR[GestorRecursos]
-  S --> GN[GestorNecesidades]
-  S --> GP[GestorPersonas]
-  S --> GM[GestorMensajes]
-  S --> GMa[GestorMascotas]
-  S --> GA[GestorAlbergues]
+flowchart LR
+  S[Emergencias.Supervisor<br/>estrategia one_for_one]
+  S --> B[Estado.Bitacora<br/>GenServer]
+  S --> GU[GestorUsuarios<br/>GenServer]
+  S --> GZ[GestorZonas<br/>GenServer]
+  S --> GR[GestorRecursos<br/>GenServer]
+  S --> GN[GestorNecesidades<br/>GenServer]
+  S --> GP[GestorPersonas<br/>GenServer]
+  S --> GM[GestorMensajes<br/>GenServer]
+  S --> GMa[GestorMascotas<br/>GenServer]
+  S --> GA[GestorAlbergues<br/>GenServer]
   S --> REG[RegistroSesiones<br/>Registry]
   S --> DS[SupervisorSesiones<br/>DynamicSupervisor]
-  DS --> S1[Sesion laura]
-  DS --> S2[Sesion pedro]
+  S --> SR[Remoto.ServicioRemoto<br/>proceso registrado :servicio_emergencias]
+  S --> BA[Estado.Barrios<br/>GenServer]
+  DS --> S1[Sesion laura<br/>:temporary]
+  DS --> S2[Sesion pedro<br/>:temporary]
   DS --> S3[Sesion ...]
-  S --> SR[ServicioRemoto<br/>:servicio_emergencias]
-  C1[cliente_remoto<br/>otro nodo] -.send / receive.-> SR
-  SR -.spawn por comando.-> P2[proceso del comando]
-  S -.al iniciar la web.-> T[Web.Fichas<br/>Agent]
-  S -.al iniciar la web.-> W[Web.Servidor<br/>Task]
-  W --> P1[un proceso por petición]
+  SR -.->|spawn por comando| X[procesos de trabajo]
+  S -.->|solo con elixir web.exs| F[Web.Fichas<br/>Agent]
+  S -.->|solo con elixir web.exs| W[Web.Servidor<br/>Task]
+  W -.->|Task.start por petición| P1[atender petición HTTP]
 ```
 
 - **one_for_one**: si un gestor falla, se reinicia solo ese y vuelve a leer su
